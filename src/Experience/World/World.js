@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import Experience from '../Experience.js';
+import Hall from './Hall.js';
 
 export default class World {
     constructor() {
@@ -11,6 +12,8 @@ export default class World {
 
         this.setSky();
         this.setFloor();
+
+        this.hall = new Hall();
         this.setKeyboardListener();
     }
 
