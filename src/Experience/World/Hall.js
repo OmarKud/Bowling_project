@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import Experience from '../Experience.js';
 import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
+
 export default class Hall {
     constructor() {
         this.experience = new Experience();
@@ -25,17 +26,17 @@ export default class Hall {
         this.wallTexture = this.textureLoader.load('/textures/plastered_wall.jpg');
         this.wallTexture.wrapS = THREE.RepeatWrapping;
         this.wallTexture.wrapT = THREE.RepeatWrapping;
-        this.wallTexture.repeat.set(8, 4);
+        this.wallTexture.repeat.set(12, 4);
 
         this.floorTexture = this.textureLoader.load('/textures/rectangular.jpg');
         this.floorTexture.wrapS = THREE.RepeatWrapping;
         this.floorTexture.wrapT = THREE.RepeatWrapping;
-        this.floorTexture.repeat.set(12, 16);
+        this.floorTexture.repeat.set(16, 24);
 
         this.ceilingTexture = this.textureLoader.load('/textures/plastered.jpg');
         this.ceilingTexture.wrapS = THREE.RepeatWrapping;
         this.ceilingTexture.wrapT = THREE.RepeatWrapping;
-        this.ceilingTexture.repeat.set(4, 12);
+        this.ceilingTexture.repeat.set(6, 20);
 
         this.floorMaterial = new THREE.MeshStandardMaterial({
             map: this.floorTexture,
@@ -89,29 +90,29 @@ export default class Hall {
     }
 
     buildHallWalls() {
-        new CustomBox(this.container, 200, 0.2, 260, this.floorMaterial, new THREE.Vector3(0, 0.1, 0));
-        new CustomBox(this.container, 0.2, 40, 260, this.lightWallMaterial, new THREE.Vector3(-100, 20, 0));
-        new CustomBox(this.container, 0.2, 40, 260, this.lightWallMaterial, new THREE.Vector3(100, 20, 0));
-        new CustomBox(this.container, 200, 40, 0.2, this.lightWallMaterial, new THREE.Vector3(0, 20, -130));
-        new CustomBox(this.container, 200, 0.2, 260, this.lightWallMaterial, new THREE.Vector3(0, 40, 0));
+        new CustomBox(this.container, 260, 0.2, 416, this.floorMaterial, new THREE.Vector3(0, 0.1, 0));
+        new CustomBox(this.container, 0.2, 40, 416, this.lightWallMaterial, new THREE.Vector3(-130, 20, 0));
+        new CustomBox(this.container, 0.2, 40, 416, this.lightWallMaterial, new THREE.Vector3(130, 20, 0));
+        new CustomBox(this.container, 260, 40, 0.2, this.lightWallMaterial, new THREE.Vector3(0, 20, -208));
+        new CustomBox(this.container, 260, 0.2, 416, this.lightWallMaterial, new THREE.Vector3(0, 40, 0));
     }
 
     buildWallPillars() {
-        const totalPillars = 6;
-        const startZ = 110;
+        const totalPillars = 9; 
+        const startZ = 180;     
         const spacingZ = 45;
 
         for (let i = 0; i < totalPillars; i++) {
             const zPos = startZ - (i * spacingZ);
-            new CustomBox(this.container, 1.5, 40, 4, this.pillarMaterial, new THREE.Vector3(-99.2, 20, zPos));
-            new CustomBox(this.container, 1.5, 40, 4, this.pillarMaterial, new THREE.Vector3(99.2, 20, zPos));
+            new CustomBox(this.container, 1.5, 40, 4, this.pillarMaterial, new THREE.Vector3(-129.2, 20, zPos));
+            new CustomBox(this.container, 1.5, 40, 4, this.pillarMaterial, new THREE.Vector3(129.2, 20, zPos));
         }
     }
 
     buildZigZagNeon() {
         const segmentLength = 52;
-        const totalSegments = 5;
-        const startZ = 130;
+        const totalSegments = 8; 
+        const startZ = 208;      
 
         for (let i = 0; i < totalSegments; i++) {
             const currentZ = startZ - (i * segmentLength) - (segmentLength * 0.5);
@@ -120,10 +121,10 @@ export default class Hall {
             const rotLeft = new THREE.Euler(isEven ? Math.PI * 0.05 : -Math.PI * 0.05, 0, 0);
             const rotRight = new THREE.Euler(isEven ? -Math.PI * 0.05 : Math.PI * 0.05, 0, 0);
 
-            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.cyanNeonMaterial, new THREE.Vector3(-98.3, isEven ? 24 : 16, currentZ), rotLeft);
-            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.magentaNeonMaterial, new THREE.Vector3(-98.3, isEven ? 16 : 8, currentZ), rotLeft);
-            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.cyanNeonMaterial, new THREE.Vector3(98.3, isEven ? 24 : 16, currentZ), rotRight);
-            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.magentaNeonMaterial, new THREE.Vector3(98.3, isEven ? 16 : 8, currentZ), rotRight);
+            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.cyanNeonMaterial, new THREE.Vector3(-128.3, isEven ? 24 : 16, currentZ), rotLeft);
+            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.magentaNeonMaterial, new THREE.Vector3(-128.3, isEven ? 16 : 8, currentZ), rotLeft);
+            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.cyanNeonMaterial, new THREE.Vector3(128.3, isEven ? 24 : 16, currentZ), rotRight);
+            new CustomBox(this.container, 0.25, 0.3, segmentLength, this.magentaNeonMaterial, new THREE.Vector3(128.3, isEven ? 16 : 8, currentZ), rotRight);
         }
     }
 
@@ -131,7 +132,7 @@ export default class Hall {
         const totalCeilings = 4;
         const ceilingWidth = 40;
         const spacingX = 48;
-        const startX = -72;
+        const startX = -72; 
         const dropY = 38.5;
 
         const dropHeight = 8.5; 
@@ -142,28 +143,25 @@ export default class Hall {
         for (let i = 0; i < totalCeilings; i++) {
             const xPos = startX + (i * spacingX);
 
-            // 1. القسم المسطح
-            new CustomBox(this.container, ceilingWidth, 0.2, 220, this.bottomCeilingMaterial, new THREE.Vector3(xPos, dropY, 0));
-            new CustomBox(this.container, 0.2, 1.5, 220, this.edgeMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5), dropY + 0.75, 0));
-            new CustomBox(this.container, 0.2, 1.5, 220, this.edgeMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5), dropY + 0.75, 0));
-            new CustomBox(this.container, ceilingWidth, 1.5, 0.2, this.edgeMaterial, new THREE.Vector3(xPos, dropY + 0.75, 110));
+            new CustomBox(this.container, ceilingWidth, 0.2, 391, this.bottomCeilingMaterial, new THREE.Vector3(xPos, dropY, 12.5));
+            new CustomBox(this.container, 0.2, 1.5, 391, this.edgeMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5), dropY + 0.75, 12.5));
+            new CustomBox(this.container, 0.2, 1.5, 391, this.edgeMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5), dropY + 0.75, 12.5));
+            new CustomBox(this.container, ceilingWidth, 1.5, 0.2, this.edgeMaterial, new THREE.Vector3(xPos, dropY + 0.75, 208));
 
-            new CustomBox(this.container, 0.1, 0.1, 220, this.cyanNeonMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5) - 0.1, dropY + 1.4, 0));
-            new CustomBox(this.container, 0.1, 0.1, 220, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, 0));
-            new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, 110));
+            new CustomBox(this.container, 0.1, 0.1, 391, this.cyanNeonMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5) - 0.1, dropY + 1.4, 12.5));
+            new CustomBox(this.container, 0.1, 0.1, 391, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, 12.5));
+            new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, 208));
 
-            // السبوتات
-            for (let j = 0; j < 6; j++) {
-                const zPos = 90 - (j * 36); 
+            for (let j = 0; j < 10; j++) {
+                const zPos = 180 - (j * 40); 
                 const spotGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
                 const spotMesh = new THREE.Mesh(spotGeometry, this.spotLightMaterial);
                 spotMesh.position.set(xPos, dropY - 0.05, zPos); 
                 this.container.add(spotMesh);
             }
 
-            // 2. القسم المائل
             const slantGroup = new THREE.Group();
-            slantGroup.position.set(xPos, dropY, -110); 
+            slantGroup.position.set(xPos, dropY, -183); 
             slantGroup.rotation.x = slantAngle; 
 
             const localZ = -slantLength * 0.5;
