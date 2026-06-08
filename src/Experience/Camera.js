@@ -30,7 +30,7 @@ this.instance.position.set(0, 15, 250);
 
         window.addEventListener('mousemove', (event) => {
             if (document.pointerLockElement === this.canvas) {
-                const sensitivity = 0.002;
+                const sensitivity = 0.005;
                 this.rotation.y -= event.movementX * sensitivity;
                 this.rotation.x -= event.movementY * sensitivity;
                 this.rotation.x = Math.max(-Math.PI * 0.45, Math.min(Math.PI * 0.45, this.rotation.x));
@@ -65,7 +65,7 @@ this.instance.position.set(0, 15, 250);
     }
 
     move() {
-        const speed = 0.02 * this.time.delta;
+        const speed = 0.05 * this.time.delta;
         const movement = new THREE.Vector3();
         const forward = new THREE.Vector3();
         
