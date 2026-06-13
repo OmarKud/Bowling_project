@@ -67,6 +67,8 @@ export default class World {
     }
 
     update() {
-
+            if (this.hall && typeof this.hall.update === 'function') {
+                this.hall.update();
+        }
     }
 }
