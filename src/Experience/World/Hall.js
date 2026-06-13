@@ -7,15 +7,27 @@ export default class Hall {
     constructor() {
         this.experience = new Experience();
         this.scene = this.experience.scene;
+        this.camera = this.experience.camera.instance;
         this.textureLoader = new THREE.TextureLoader();
 
         this.container = new THREE.Group();
+
+        this.doorZ = 208; 
+        this.doorWidth = 40; 
+        this.doorHeight = 25;
+        this.maxOpenDistance = 16; 
+        
+        this.leftDoorTargetX = -10; 
+        this.rightDoorTargetX = 10;  
+        this.leftDoorCurrentX = -10;
+        this.rightDoorCurrentX = 10;
 
         this.setMaterials();
         this.buildHallWalls();
         this.buildWallPillars(); 
         this.buildZigZagNeon();
         this.buildFourDroppedCeilings();
+        this.buildFrontWallAndGlassDoor();
         
         this.lights = new HallLights(this.container, this.scene);
         
@@ -87,6 +99,23 @@ export default class Hall {
             emissive: 0xffffff,
             emissiveIntensity: 5
         });
+
+        this.glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.3,
+            roughness: 0.1,
+            metalness: 0.1,
+            transmission: 0.9, 
+            ior: 1.5,
+            thickness: 0.5
+        });
+
+        this.doorFrameMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.4,
+            metalness: 0.8
+        });
     }
 
     buildHallWalls() {
@@ -95,6 +124,44 @@ export default class Hall {
         new CustomBox(this.container, 0.2, 40, 416, this.lightWallMaterial, new THREE.Vector3(130, 20, 0));
         new CustomBox(this.container, 260, 40, 0.2, this.lightWallMaterial, new THREE.Vector3(0, 20, -208));
         new CustomBox(this.container, 260, 0.2, 416, this.lightWallMaterial, new THREE.Vector3(0, 40, 0));
+    }
+
+buildFrontWallAndGlassDoor() {
+        const wallZ = this.doorZ;
+        const wallHeight = 40;
+        const sideWallWidth = 110; 
+        const leftWallX = -130 + (sideWallWidth / 2);
+        const rightWallX = 130 - (sideWallWidth / 2); 
+
+        new CustomBox(this.container, sideWallWidth, wallHeight, 0.2, this.lightWallMaterial, new THREE.Vector3(leftWallX, wallHeight / 2, wallZ));
+        new CustomBox(this.container, sideWallWidth, wallHeight, 0.2, this.lightWallMaterial, new THREE.Vector3(rightWallX, wallHeight / 2, wallZ));
+        const topWallHeight = wallHeight - this.doorHeight; 
+        const topWallY = this.doorHeight + (topWallHeight / 2); 
+        new CustomBox(this.container, this.doorWidth, topWallHeight, 0.2, this.lightWallMaterial, new THREE.Vector3(0, topWallY, wallZ));
+        new CustomBox(this.container, this.doorWidth, 0.4, 0.6, this.doorFrameMaterial, new THREE.Vector3(0, this.doorHeight, wallZ));
+        new CustomBox(this.container, 0.4, this.doorHeight, 0.6, this.doorFrameMaterial, new THREE.Vector3(-(this.doorWidth / 2), this.doorHeight / 2, wallZ));
+        new CustomBox(this.container, 0.4, this.doorHeight, 0.6, this.doorFrameMaterial, new THREE.Vector3((this.doorWidth / 2), this.doorHeight / 2, wallZ));
+        const leafWidth = (this.doorWidth / 2) - 0.2; 
+        const leafHeight = this.doorHeight - 0.2;
+
+        this.leftDoorGroup = new THREE.Group();
+        this.leftDoorGroup.position.set(-leafWidth / 2, leafHeight / 2, wallZ); 
+        new CustomBox(this.leftDoorGroup, leafWidth, leafHeight, 0.3, this.glassMaterial, new THREE.Vector3(0, 0, 0));
+        new CustomBox(this.leftDoorGroup, leafWidth, 0.3, 0.4, this.doorFrameMaterial, new THREE.Vector3(0, leafHeight/2, 0));
+        new CustomBox(this.leftDoorGroup, leafWidth, 0.3, 0.4, this.doorFrameMaterial, new THREE.Vector3(0, -leafHeight/2, 0));
+        new CustomBox(this.leftDoorGroup, 0.3, leafHeight, 0.4, this.doorFrameMaterial, new THREE.Vector3(-leafWidth/2, 0, 0));
+        new CustomBox(this.leftDoorGroup, 0.3, leafHeight, 0.4, this.doorFrameMaterial, new THREE.Vector3(leafWidth/2, 0, 0));
+        
+        this.container.add(this.leftDoorGroup);
+        this.rightDoorGroup = new THREE.Group();
+        this.rightDoorGroup.position.set(leafWidth / 2, leafHeight / 2, wallZ); 
+        new CustomBox(this.rightDoorGroup, leafWidth, leafHeight, 0.3, this.glassMaterial, new THREE.Vector3(0, 0, 0));
+        new CustomBox(this.rightDoorGroup, leafWidth, 0.3, 0.4, this.doorFrameMaterial, new THREE.Vector3(0, leafHeight/2, 0));
+        new CustomBox(this.rightDoorGroup, leafWidth, 0.3, 0.4, this.doorFrameMaterial, new THREE.Vector3(0, -leafHeight/2, 0));
+        new CustomBox(this.rightDoorGroup, 0.3, leafHeight, 0.4, this.doorFrameMaterial, new THREE.Vector3(-leafWidth/2, 0, 0));
+        new CustomBox(this.rightDoorGroup, 0.3, leafHeight, 0.4, this.doorFrameMaterial, new THREE.Vector3(leafWidth/2, 0, 0));
+
+        this.container.add(this.rightDoorGroup);
     }
 
     buildWallPillars() {
@@ -177,5 +244,28 @@ export default class Hall {
 
             this.container.add(slantGroup);
         }
+    }
+
+update() {
+        if (!this.camera || !this.leftDoorGroup || !this.rightDoorGroup) return;
+
+        const cameraZ = this.camera.position.z;
+        const distanceX = Math.abs(this.camera.position.x);
+        const isNearFromInside = (cameraZ <= this.doorZ && (this.doorZ - cameraZ) < 60);
+        const isNearFromOutside = (cameraZ > this.doorZ && (cameraZ - this.doorZ) < 60);
+
+        if ((isNearFromInside || isNearFromOutside) && distanceX < 35) {
+            this.leftDoorTargetX = -10 - this.maxOpenDistance;
+            this.rightDoorTargetX = 10 + this.maxOpenDistance;
+            this.isDoorOpen = true; 
+        } else {
+            this.leftDoorTargetX = -10;
+            this.rightDoorTargetX = 10;
+            this.isDoorOpen = false;
+        }
+        this.leftDoorCurrentX += (this.leftDoorTargetX - this.leftDoorCurrentX) * 0.12;
+        this.rightDoorCurrentX += (this.rightDoorTargetX - this.rightDoorCurrentX) * 0.12;
+        this.leftDoorGroup.position.x = this.leftDoorCurrentX;
+        this.rightDoorGroup.position.x = this.rightDoorCurrentX;
     }
 }
