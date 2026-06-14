@@ -85,19 +85,19 @@ export default class Hall {
         this.cyanNeonMaterial = new THREE.MeshStandardMaterial({
             color: 0x000000,
             emissive: 0x00ffff,
-            emissiveIntensity: 4 
+            emissiveIntensity: 6
         });
 
         this.magentaNeonMaterial = new THREE.MeshStandardMaterial({
             color: 0x000000,
             emissive: 0xff00ff,
-            emissiveIntensity: 4
+            emissiveIntensity: 7
         });
 
         this.spotLightMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             emissive: 0xffffff,
-            emissiveIntensity: 3
+            emissiveIntensity: 5
         });
 
         this.glassMaterial = new THREE.MeshStandardMaterial({
@@ -201,8 +201,9 @@ export default class Hall {
         const startX = -72; 
         const dropY = 50.5;
 
-        const ceilingDepth = 283;
-        const centerZ = -41.5; 
+        // مواءمة الأبعاد لتمتد القشرة المسطحة لتتصل بالمنحدر المائل والحيط الخلفي بنسب متوازنة مئة بالمئة
+        const ceilingDepth = 330;
+        const centerZ = -65; 
         const frontEdgeZ = 100; 
 
         this.droppedBaseGeometry = new THREE.BoxGeometry(ceilingWidth, 0.2, ceilingDepth);
@@ -213,8 +214,9 @@ export default class Hall {
         this.horizontalNeonGeometry = new THREE.BoxGeometry(ceilingWidth + 0.2, 0.1, 0.2); 
         this.spotGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
 
+        // تعديل عمق وزاوية السقف المائل ليلتحم ويقفل تماماً على الحائط الخلفي عند الإحداثية الحقيقية (Z = -270)
         const dropHeight = 8.5; 
-        const dropDepth = 25;   
+        const dropDepth = 40;   
         const slantLength = Math.hypot(dropDepth, dropHeight); 
         const slantAngle = -Math.atan(dropHeight / dropDepth); 
 
@@ -233,8 +235,7 @@ export default class Hall {
             new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, centerZ));
             new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, frontEdgeZ));
 
-            // ================= التعديل هنا =================
-            // تعديل الحلقة ببدء التكرار من 3 لحذف الدوائر والأسطوانات من السقف الأسود المكشوف
+       
             for (let j = 3; j < 10; j++) {
                 const zPos = 180 - (j * 40); 
                 const spotMesh = new THREE.Mesh(this.spotGeometry, this.spotLightMaterial);
@@ -243,7 +244,7 @@ export default class Hall {
             }
 
             const slantGroup = new THREE.Group();
-            slantGroup.position.set(xPos, dropY, -250); 
+            slantGroup.position.set(xPos, dropY, -230); 
             slantGroup.rotation.x = slantAngle; 
 
             const localZ = -slantLength * 0.5;
