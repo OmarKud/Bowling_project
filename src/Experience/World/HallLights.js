@@ -27,9 +27,12 @@ export default class HallLights {
         for (let i = 0; i < totalCeilings; i++) {
             const xPos = startX + (i * spacingX);
 
-            // كشافات السبوتات المخروطية القوية الموجهة للأرضية
-            for (let j = 0; j < 6; j++) {
-                const zPos = 90 - (j * 36);
+            // ================= التعديل هنا =================
+            // جعلنا الـ j تبدأ من 3 بدلاً من 0 لحذف أول 3 سبوتات طائرة في الفراغ الأمامي
+            // الأضواء الآن تبدأ من Z = 60 فما دون، لتصبح تحت السقف المستعار بالضبط
+            for (let j = 3; j < 10; j++) {
+                const zPos = 180 - (j * 40); // حساب الموقع الدقيق للسبوت
+                
                 const spotLight = new THREE.SpotLight(0xffffff, 120, 160, Math.PI / 9, 0.4, 1);
                 spotLight.position.set(xPos, 38.3, zPos); 
                 spotLight.target.position.set(xPos, 0, zPos);
@@ -38,7 +41,7 @@ export default class HallLights {
                 this.scene.add(spotLight);
             }
 
-            // (Pins Area)
+            // إضاءة غسيل الحائط الخلفي (Pins Area)
             const backWallWash = new THREE.SpotLight(0xffffff, 40, 80, Math.PI / 3, 0.6, 1);
             backWallWash.position.set(xPos, 28, -125);
             backWallWash.target.position.set(xPos, 0, -130); 

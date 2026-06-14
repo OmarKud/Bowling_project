@@ -126,7 +126,7 @@ export default class Hall {
         new CustomBox(this.container, 260, 0.2, 416, this.lightWallMaterial, new THREE.Vector3(0, 40, 0));
     }
 
-buildFrontWallAndGlassDoor() {
+    buildFrontWallAndGlassDoor() {
         const wallZ = this.doorZ;
         const wallHeight = 40;
         const sideWallWidth = 110; 
@@ -202,27 +202,43 @@ buildFrontWallAndGlassDoor() {
         const startX = -72; 
         const dropY = 38.5;
 
+        const ceilingDepth = 283;
+        const centerZ = -41.5; 
+        const frontEdgeZ = 100; 
+
+        this.droppedBaseGeometry = new THREE.BoxGeometry(ceilingWidth, 0.2, ceilingDepth);
+        this.longCeilingWallGeometry = new THREE.BoxGeometry(0.2, 1.5, ceilingDepth);
+        this.shortCeilingWallGeometry = new THREE.BoxGeometry(ceilingWidth, 1.5, 0.2);
+        
+        this.linearNeonGeometry = new THREE.BoxGeometry(0.1, 0.1, ceilingDepth);
+        this.horizontalNeonGeometry = new THREE.BoxGeometry(ceilingWidth + 0.2, 0.1, 0.2); 
+        this.spotGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
+
         const dropHeight = 8.5; 
-        const dropDepth = 20;   
+        const dropDepth = 25;   
         const slantLength = Math.hypot(dropDepth, dropHeight); 
         const slantAngle = -Math.atan(dropHeight / dropDepth); 
+
+        this.slantBaseGeometry = new THREE.BoxGeometry(ceilingWidth, 0.2, slantLength);
+        this.slantEdgeGeometry = new THREE.BoxGeometry(0.2, 1.5, slantLength);
 
         for (let i = 0; i < totalCeilings; i++) {
             const xPos = startX + (i * spacingX);
 
-            new CustomBox(this.container, ceilingWidth, 0.2, 391, this.bottomCeilingMaterial, new THREE.Vector3(xPos, dropY, 12.5));
-            new CustomBox(this.container, 0.2, 1.5, 391, this.edgeMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5), dropY + 0.75, 12.5));
-            new CustomBox(this.container, 0.2, 1.5, 391, this.edgeMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5), dropY + 0.75, 12.5));
-            new CustomBox(this.container, ceilingWidth, 1.5, 0.2, this.edgeMaterial, new THREE.Vector3(xPos, dropY + 0.75, 208));
+            new CustomBox(this.container, ceilingWidth, 0.2, ceilingDepth, this.bottomCeilingMaterial, new THREE.Vector3(xPos, dropY, centerZ));
+            new CustomBox(this.container, 0.2, 1.5, ceilingDepth, this.edgeMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5), dropY + 0.75, centerZ));
+            new CustomBox(this.container, 0.2, 1.5, ceilingDepth, this.edgeMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5), dropY + 0.75, centerZ));
+            new CustomBox(this.container, ceilingWidth, 1.5, 0.2, this.edgeMaterial, new THREE.Vector3(xPos, dropY + 0.75, frontEdgeZ));
 
-            new CustomBox(this.container, 0.1, 0.1, 391, this.cyanNeonMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5) - 0.1, dropY + 1.4, 12.5));
-            new CustomBox(this.container, 0.1, 0.1, 391, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, 12.5));
-            new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, 208));
+            new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5) - 0.1, dropY + 1.4, centerZ));
+            new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, centerZ));
+            new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, frontEdgeZ));
 
-            for (let j = 0; j < 10; j++) {
+            // ================= التعديل هنا =================
+            // تعديل الحلقة ببدء التكرار من 3 لحذف الدوائر والأسطوانات من السقف الأسود المكشوف
+            for (let j = 3; j < 10; j++) {
                 const zPos = 180 - (j * 40); 
-                const spotGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
-                const spotMesh = new THREE.Mesh(spotGeometry, this.spotLightMaterial);
+                const spotMesh = new THREE.Mesh(this.spotGeometry, this.spotLightMaterial);
                 spotMesh.position.set(xPos, dropY - 0.05, zPos); 
                 this.container.add(spotMesh);
             }
@@ -246,7 +262,7 @@ buildFrontWallAndGlassDoor() {
         }
     }
 
-update() {
+    update() {
         if (!this.camera || !this.leftDoorGroup || !this.rightDoorGroup) return;
 
         const cameraZ = this.camera.position.z;
