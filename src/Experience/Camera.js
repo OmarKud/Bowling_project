@@ -62,6 +62,10 @@ this.instance.position.set(0, 15, 250);
     update() {
         this.instance.quaternion.setFromEuler(this.rotation);
         this.move();
+
+        if (this.experience.physics) {
+            this.experience.physics.checkCameraBounds(this.instance.position);
+        }
     }
 
     move() {
@@ -84,6 +88,7 @@ this.instance.position.set(0, 15, 250);
         if (movement.lengthSq() > 0) {
             movement.normalize().multiplyScalar(speed);
             this.instance.position.add(movement);
+
         }
     }
 }
