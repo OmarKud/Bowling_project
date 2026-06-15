@@ -4,9 +4,7 @@ import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
 import BowlingLanes from './BowlingLanes.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import MaskingWall from './MaskingWall.js'; // استدعاء الكلاس الجديد
-
-
+import MaskingWall from './MaskingWall.js'; 
 
 export default class Hall {
     constructor() {
@@ -35,18 +33,14 @@ export default class Hall {
         this.buildFourDroppedCeilings();
         this.buildFrontWallAndGlassDoor();
         this.buildFrontGridPanels(); 
-        // this.buildLeatherSofas(); // 
         this.buildSodaFridge();
         this.buildSecondSodaFridge(); 
+        
+        // بناء اللوغو النيون فوق الجدار المعلق مباشرة
         this.buildNeonSignOnBackWall(); 
         
-        
-        // استدعاء خطوط البولينغ
         this.bowlingLanes = new BowlingLanes(this.container);
-        
-        // استدعاء جدار الحجب المعلق والقواطع الخلفية بشكل آمن ومستقل
         this.maskingWall = new MaskingWall(this.container);
-        
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
@@ -89,7 +83,7 @@ export default class Hall {
 
         this.bottomCeilingMaterial = new THREE.MeshStandardMaterial({
             map: this.ceilingTexture,
-            color: 0xffffff, // إرجاع اللون الأبيض الأصلي للسقف لمنع تضرر الإضاءة
+            color: 0xffffff, 
             roughness: 0.6,
             metalness: 0.1
         });
@@ -305,7 +299,6 @@ export default class Hall {
         }
     }
 
-
     buildNeonSignOnBackWall() {
         const neonTexture = this.textureLoader.load('/textures/bowling_sign1.png');
 
@@ -323,15 +316,14 @@ export default class Hall {
         const signGeometry = new THREE.PlaneGeometry(140, 60);
         const neonMesh = new THREE.Mesh(signGeometry, signMaterial);
        
-        neonMesh.position.set(0, 29, -250);
+        neonMesh.position.set(0, 33, -229.1);
         neonMesh.rotation.y = 0; 
 
         this.container.add(neonMesh);
-        console.log('Neon Photo Sign fixed: Original colors restored and perfectly sharpened!');
+        console.log('Neon Photo Sign fixed: Placed perfectly on top of the Masking Wall!');
     }
 
     buildSodaFridge() {
-        // البراد الأول (الجهة اليسرى الخلفية Z = -260, X = -110)
         const fridgeGroup = new THREE.Group();
         fridgeGroup.position.set(-110, 0.1, -260); 
         this.container.add(fridgeGroup);
@@ -374,76 +366,7 @@ export default class Hall {
             }
         );
     }
-// buildLeatherSofas() {
-//         // تحميل الموديل الأساسي مرة واحدة للأداء العالي وعرض ألوانه الطبيعية
-//         this.gltfLoader.load(
-//             '/models/leather_sofa.glb', 
-//             (gltf) => {
-//                 const baseModel = gltf.scene;
-//                 // الحجم الكبير والمناسب
-//                 baseModel.scale.set(0.11, 0.11, 0.11); 
 
-//                 const posY = 1.2; // الارتفاع عن الأرض
-
-//                 // ================= 1. تقريب الجلسات للباب =================
-//                 // الباب عند 270، خلينا الجلسات عند 230 لتكون في الاستقبال مباشرة
-//                 const zPosition = 230;  
-
-//                 // ================= 2. إبعاد الكنبات عن الحيطان =================
-//                 const xWallLeft = -100;  // بعدناها عن الحيط اليسار شوية (كانت -110)
-//                 const xCenterLeft = -50; // قربناها لتبقى بوش الكنبة الأولى وبمسافة ممتازة
-                
-//                 const xWallRight = 100;  // بعدناها عن الحيط اليمين شوية (كانت 110)
-//                 const xCenterRight = 50; // قربناها لتبقى بوش الكنبة الثالثة
-
-//                 // زوايا الدوران المتقابلة (تبص يمين وتبص يسار)
-//                 const rotFacingRight = Math.PI / 2;  
-//                 const rotFacingLeft = -Math.PI / 2;  
-
-
-//                 // 🛋️ [الجهة اليسارية: كنبتين بوش بعض]
-//                 // 1. اليسارية اللي جهة الحيط (تبص لجهة اليمين/النص)
-//                 const sofa1Group = new THREE.Group();
-//                 sofa1Group.position.set(xWallLeft, posY, zPosition);
-//                 this.container.add(sofa1Group);
-//                 const sofa1 = baseModel.clone();
-//                 sofa1.rotation.y = rotFacingRight; 
-//                 sofa1Group.add(sofa1);
-
-//                 // 2. اليسارية اللي بنص الصالة (تبص لجهة اليسار/الحيط - بوجه الأولى)
-//                 const sofa2Group = new THREE.Group();
-//                 sofa2Group.position.set(xCenterLeft, posY, zPosition);
-//                 this.container.add(sofa2Group);
-//                 const sofa2 = baseModel.clone();
-//                 sofa2.rotation.y = rotFacingLeft; 
-//                 sofa2Group.add(sofa2);
-
-
-//                 // 🛋️ [الجهة اليمينية: كنبتين بوش بعض]
-//                 // 3. اليمينية اللي جهة الحيط (تبص لجهة اليسار/النص)
-//                 const sofa3Group = new THREE.Group();
-//                 sofa3Group.position.set(xWallRight, posY, zPosition);
-//                 this.container.add(sofa3Group);
-//                 const sofa3 = baseModel.clone();
-//                 sofa3.rotation.y = rotFacingLeft; 
-//                 sofa3Group.add(sofa3);
-
-//                 // 4. اليمينية اللي بنص الصالة (تبص لجهة اليمين/الحيط - بوجه الثالثة)
-//                 const sofa4Group = new THREE.Group();
-//                 sofa4Group.position.set(xCenterRight, posY, zPosition);
-//                 this.container.add(sofa4Group);
-//                 const sofa4 = baseModel.clone();
-//                 sofa4.rotation.y = rotFacingRight; 
-//                 sofa4Group.add(sofa4);
-
-//                 console.log('Sofas successfully moved closer to the door and spaced away from the walls!');
-//             },
-//             undefined,
-//             (error) => {
-//                 console.warn('Sofa model skipped', error);
-//             }
-//         );
-//     }
     update() {
         if (!this.camera || !this.leftDoorGroup || !this.rightDoorGroup) return;
 
