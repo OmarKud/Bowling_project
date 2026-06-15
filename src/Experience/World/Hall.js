@@ -4,6 +4,9 @@ import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
 import BowlingScreens from './BowlingScreens.js';
 import BallReturnSystem from './BallReturnSystem.js';
+import BowlingLanes from './BowlingLanes.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import MaskingWall from './MaskingWall.js'; 
 
 export default class Hall {
     constructor() {
@@ -11,6 +14,7 @@ export default class Hall {
         this.scene = this.experience.scene;
         this.camera = this.experience.camera.instance;
         this.textureLoader = new THREE.TextureLoader();
+        this.gltfLoader = new GLTFLoader();
 
         this.container = new THREE.Group();
 
@@ -32,7 +36,15 @@ export default class Hall {
         this.buildFrontWallAndGlassDoor();
         this.bowlingScreens = new BowlingScreens(this.container, this.screenFrameMaterial);
         this.ballReturnSystem = new BallReturnSystem(this.container, this.ballReturnMaterial, this.pillarMaterial);
+        this.buildFrontGridPanels(); 
+        this.buildSodaFridge();
+        this.buildSecondSodaFridge(); 
         
+        // بناء اللوغو النيون فوق الجدار المعلق مباشرة
+        this.buildNeonSignOnBackWall(); 
+        
+        this.bowlingLanes = new BowlingLanes(this.container);
+        this.maskingWall = new MaskingWall(this.container);
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
@@ -44,7 +56,7 @@ export default class Hall {
         this.wallTexture.wrapT = THREE.RepeatWrapping;
         this.wallTexture.repeat.set(12, 4);
 
-        this.floorTexture = this.textureLoader.load('/textures/rectangular.jpg');
+        this.floorTexture = this.textureLoader.load('/textures/bowling_wood_lane.jpg');
         this.floorTexture.wrapS = THREE.RepeatWrapping;
         this.floorTexture.wrapT = THREE.RepeatWrapping;
         this.floorTexture.repeat.set(16, 24);
@@ -75,7 +87,7 @@ export default class Hall {
 
         this.bottomCeilingMaterial = new THREE.MeshStandardMaterial({
             map: this.ceilingTexture,
-            color: 0xffffff,
+            color: 0xffffff, 
             roughness: 0.6,
             metalness: 0.1
         });
@@ -100,6 +112,12 @@ export default class Hall {
 
         this.spotLightMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
+            emissive: 0xffffff,
+            emissiveIntensity: 5
+        });
+
+        this.gridNeonMaterial = new THREE.MeshStandardMaterial({
+            color: 0x000000,
             emissive: 0xffffff,
             emissiveIntensity: 5
         });
@@ -236,9 +254,11 @@ export default class Hall {
             new CustomBox(this.container, 0.2, 1.5, ceilingDepth, this.edgeMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5), dropY + 0.75, centerZ));
             new CustomBox(this.container, ceilingWidth, 1.5, 0.2, this.edgeMaterial, new THREE.Vector3(xPos, dropY + 0.75, frontEdgeZ));
 
-            new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5) - 0.1, dropY + 1.4, centerZ));
-            new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, centerZ));
-            new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, frontEdgeZ));
+            const blockNeonMaterial = i % 2 === 0 ? this.cyanNeonMaterial : this.magentaNeonMaterial;
+
+            new CustomBox(this.container, 0.1, 0.1, ceilingDepth, blockNeonMaterial, new THREE.Vector3(xPos - (ceilingWidth * 0.5) - 0.1, dropY + 1.4, centerZ));
+            new CustomBox(this.container, 0.1, 0.1, ceilingDepth, blockNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, centerZ));
+            new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, blockNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, frontEdgeZ));
 
             for (let j = 3; j < 10; j++) {
                 const zPos = 180 - (j * 40); 
@@ -258,12 +278,100 @@ export default class Hall {
             new CustomBox(slantGroup, 0.2, 1.5, slantLength, this.edgeMaterial, new THREE.Vector3((ceilingWidth * 0.5), 0.75, localZ));
             new CustomBox(slantGroup, ceilingWidth, 1.5, 0.2, this.edgeMaterial, new THREE.Vector3(0, 0.75, -slantLength));
 
-            new CustomBox(slantGroup, 0.1, 0.1, slantLength, this.cyanNeonMaterial, new THREE.Vector3(-(ceilingWidth * 0.5) - 0.1, 1.4, localZ));
-            new CustomBox(slantGroup, 0.1, 0.1, slantLength, this.cyanNeonMaterial, new THREE.Vector3((ceilingWidth * 0.5) + 0.1, 1.4, localZ));
-            new CustomBox(slantGroup, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(0, 1.4, -slantLength + 0.25));
+            new CustomBox(slantGroup, 0.1, 0.1, slantLength, blockNeonMaterial, new THREE.Vector3(-(ceilingWidth * 0.5) - 0.1, 1.4, localZ));
+            new CustomBox(slantGroup, 0.1, 0.1, slantLength, blockNeonMaterial, new THREE.Vector3((ceilingWidth * 0.5) + 0.1, 1.4, localZ));
+            new CustomBox(slantGroup, ceilingWidth + 0.2, 0.1, 0.2, blockNeonMaterial, new THREE.Vector3(0, 1.4, -slantLength + 0.25));
 
             this.container.add(slantGroup);
         }
+    }
+
+    buildFrontGridPanels() {
+        const totalGridX = 4;
+        const totalGridZ = 2;
+        const spacingX = 65;
+        const spacingZ = 45;
+        const startX = -97.5;
+        const startZ = 135;
+
+        for (let i = 0; i < totalGridX; i++) {
+            const xPos = startX + (i * spacingX);
+
+            for (let j = 0; j < totalGridZ; j++) {
+                const zPos = startZ + (j * spacingZ);
+
+                new CustomBox(this.container, 12, 0.1, 12, this.edgeMaterial, new THREE.Vector3(xPos, 51.9, zPos));
+                new CustomBox(this.container, 10, 0.12, 10, this.gridNeonMaterial, new THREE.Vector3(xPos, 51.88, zPos));
+            }
+        }
+    }
+
+    buildNeonSignOnBackWall() {
+        const neonTexture = this.textureLoader.load('/textures/bowling_sign1.png');
+
+        neonTexture.generateMipmaps = false; 
+        neonTexture.minFilter = THREE.LinearFilter;
+        neonTexture.magFilter = THREE.LinearFilter;
+
+        const signMaterial = new THREE.MeshBasicMaterial({
+            map: neonTexture,          
+            transparent: true,        
+            alphaTest: 0.1,          
+            side: THREE.DoubleSide 
+        });
+
+        const signGeometry = new THREE.PlaneGeometry(140, 60);
+        const neonMesh = new THREE.Mesh(signGeometry, signMaterial);
+       
+        neonMesh.position.set(0, 33, -229.1);
+        neonMesh.rotation.y = 0; 
+
+        this.container.add(neonMesh);
+        console.log('Neon Photo Sign fixed: Placed perfectly on top of the Masking Wall!');
+    }
+
+    buildSodaFridge() {
+        const fridgeGroup = new THREE.Group();
+        fridgeGroup.position.set(-110, 0.1, -260); 
+        this.container.add(fridgeGroup);
+
+        this.gltfLoader.load(
+            '/models/soda_fridge1.glb', 
+            (gltf) => {
+                const model = gltf.scene;
+                model.scale.set(20, 20, 20); 
+                model.rotation.y = 0; 
+
+                fridgeGroup.add(model);
+            },
+            undefined,
+            (error) => {
+                console.error('An error occurred while loading the fridge model:', error);
+            }
+        );
+    }
+
+   buildSecondSodaFridge() {
+        const fridgeGroup = new THREE.Group();
+        fridgeGroup.position.set(88, 0.1, -260); 
+        this.container.add(fridgeGroup);
+
+        this.gltfLoader.load(
+            '/models/soda_fridge.glb', 
+            (gltf) => {
+                const model = gltf.scene;
+                
+                model.scale.set(0.040, 0.040, 0.040); 
+                model.rotation.y = -Math.PI / 2; 
+
+                fridgeGroup.add(model);
+                console.log('Soda Fridge updated: smaller, moved back and left!');
+            },
+            undefined,
+            (error) => {
+                console.error('An error occurred while loading the fridge model:', error);
+            }
+        );
     }
 
     update() {
