@@ -30,7 +30,7 @@ export default class BowlingLanes {
             metalness: 0.1
         });
 
-        this.gutterTexture = this.textureLoader.load('/textures/purple3.jpg');
+        this.gutterTexture = this.textureLoader.load('/textures/purple2.jpg');
         this.gutterTexture.wrapS = THREE.RepeatWrapping;
         this.gutterTexture.wrapT = THREE.RepeatWrapping;
         this.gutterTexture.repeat.set(1, 25);
