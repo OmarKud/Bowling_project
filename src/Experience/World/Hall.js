@@ -3,16 +3,14 @@ import Experience from '../Experience.js';
 import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
 import BowlingLanes from './BowlingLanes.js';
+import MaskingWall from './MaskingWall.js'; // استدعاء الكلاس الجديد
 
 export default class Hall {
     constructor() {
-        
         this.experience = new Experience();
-        
         this.scene = this.experience.scene;
         this.camera = this.experience.camera.instance;
         this.textureLoader = new THREE.TextureLoader();
-
 
         this.container = new THREE.Group();
 
@@ -32,7 +30,13 @@ export default class Hall {
         this.buildZigZagNeon();
         this.buildFourDroppedCeilings();
         this.buildFrontWallAndGlassDoor();
+        
+        // استدعاء خطوط البولينغ
         this.bowlingLanes = new BowlingLanes(this.container);
+        
+        // استدعاء جدار الحجب المعلق والقواطع الخلفية بشكل آمن ومستقل
+        this.maskingWall = new MaskingWall(this.container);
+        
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
@@ -75,7 +79,7 @@ export default class Hall {
 
         this.bottomCeilingMaterial = new THREE.MeshStandardMaterial({
             map: this.ceilingTexture,
-            color: 0xffffff,
+            color: 0xffffff, // إرجاع اللون الأبيض الأصلي للسقف لمنع تضرر الإضاءة
             roughness: 0.6,
             metalness: 0.1
         });
@@ -205,7 +209,6 @@ export default class Hall {
         const startX = -72; 
         const dropY = 50.5;
 
-        // مواءمة الأبعاد لتمتد القشرة المسطحة لتتصل بالمنحدر المائل والحيط الخلفي بنسب متوازنة مئة بالمئة
         const ceilingDepth = 330;
         const centerZ = -65; 
         const frontEdgeZ = 100; 
@@ -218,7 +221,6 @@ export default class Hall {
         this.horizontalNeonGeometry = new THREE.BoxGeometry(ceilingWidth + 0.2, 0.1, 0.2); 
         this.spotGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
 
-        // تعديل عمق وزاوية السقف المائل ليلتحم ويقفل تماماً على الحائط الخلفي عند الإحداثية الحقيقية (Z = -270)
         const dropHeight = 8.5; 
         const dropDepth = 40;   
         const slantLength = Math.hypot(dropDepth, dropHeight); 
@@ -239,7 +241,6 @@ export default class Hall {
             new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, centerZ));
             new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, frontEdgeZ));
 
-       
             for (let j = 3; j < 10; j++) {
                 const zPos = 180 - (j * 40); 
                 const spotMesh = new THREE.Mesh(this.spotGeometry, this.spotLightMaterial);
