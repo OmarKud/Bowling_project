@@ -4,11 +4,9 @@ import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
 import BowlingLanes from './BowlingLanes.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-
-export default class Hall {
-    constructor() {
-        this.gltfLoader = new GLTFLoader();
 import MaskingWall from './MaskingWall.js'; // استدعاء الكلاس الجديد
+
+
 
 export default class Hall {
     constructor() {
@@ -16,6 +14,7 @@ export default class Hall {
         this.scene = this.experience.scene;
         this.camera = this.experience.camera.instance;
         this.textureLoader = new THREE.TextureLoader();
+        this.gltfLoader = new GLTFLoader();
 
         this.container = new THREE.Group();
 
