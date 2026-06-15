@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import Experience from '../Experience.js';
 import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
+import BowlingScreens from './BowlingScreens.js';
+import BallReturnSystem from './BallReturnSystem.js';
 
 export default class Hall {
     constructor() {
@@ -18,7 +20,7 @@ export default class Hall {
         this.maxOpenDistance = 16; 
         
         this.leftDoorTargetX = -10; 
-        this.rightDoorTargetX = 10;  
+        this.rightDoorTargetX = 10;   
         this.leftDoorCurrentX = -10;
         this.rightDoorCurrentX = 10;
 
@@ -28,6 +30,8 @@ export default class Hall {
         this.buildZigZagNeon();
         this.buildFourDroppedCeilings();
         this.buildFrontWallAndGlassDoor();
+        this.bowlingScreens = new BowlingScreens(this.container, this.screenFrameMaterial);
+        this.ballReturnSystem = new BallReturnSystem(this.container, this.ballReturnMaterial, this.pillarMaterial);
         
         this.lights = new HallLights(this.container, this.scene);
         
@@ -113,6 +117,18 @@ export default class Hall {
             roughness: 0.4,
             metalness: 0.8
         });
+
+        this.screenFrameMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0a0a0a,
+            roughness: 0.3,
+            metalness: 0.7
+        });
+
+        this.ballReturnMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            roughness: 0.2,
+            metalness: 0.6
+        });
     }
 
     buildHallWalls() {
@@ -165,7 +181,7 @@ export default class Hall {
 
     buildWallPillars() {
         const totalPillars = 12; 
-        const startZ = 240;     
+        const startZ = 240;      
         const spacingZ = 45;
 
         for (let i = 0; i < totalPillars; i++) {
@@ -201,27 +217,16 @@ export default class Hall {
         const startX = -72; 
         const dropY = 50.5;
 
-        // مواءمة الأبعاد لتمتد القشرة المسطحة لتتصل بالمنحدر المائل والحيط الخلفي بنسب متوازنة مئة بالمئة
         const ceilingDepth = 330;
         const centerZ = -65; 
         const frontEdgeZ = 100; 
 
-        this.droppedBaseGeometry = new THREE.BoxGeometry(ceilingWidth, 0.2, ceilingDepth);
-        this.longCeilingWallGeometry = new THREE.BoxGeometry(0.2, 1.5, ceilingDepth);
-        this.shortCeilingWallGeometry = new THREE.BoxGeometry(ceilingWidth, 1.5, 0.2);
-        
-        this.linearNeonGeometry = new THREE.BoxGeometry(0.1, 0.1, ceilingDepth);
-        this.horizontalNeonGeometry = new THREE.BoxGeometry(ceilingWidth + 0.2, 0.1, 0.2); 
         this.spotGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16);
 
-        // تعديل عمق وزاوية السقف المائل ليلتحم ويقفل تماماً على الحائط الخلفي عند الإحداثية الحقيقية (Z = -270)
         const dropHeight = 8.5; 
         const dropDepth = 40;   
         const slantLength = Math.hypot(dropDepth, dropHeight); 
         const slantAngle = -Math.atan(dropHeight / dropDepth); 
-
-        this.slantBaseGeometry = new THREE.BoxGeometry(ceilingWidth, 0.2, slantLength);
-        this.slantEdgeGeometry = new THREE.BoxGeometry(0.2, 1.5, slantLength);
 
         for (let i = 0; i < totalCeilings; i++) {
             const xPos = startX + (i * spacingX);
@@ -235,7 +240,6 @@ export default class Hall {
             new CustomBox(this.container, 0.1, 0.1, ceilingDepth, this.cyanNeonMaterial, new THREE.Vector3(xPos + (ceilingWidth * 0.5) + 0.1, dropY + 1.4, centerZ));
             new CustomBox(this.container, ceilingWidth + 0.2, 0.1, 0.2, this.cyanNeonMaterial, new THREE.Vector3(xPos, dropY + 1.4, frontEdgeZ));
 
-       
             for (let j = 3; j < 10; j++) {
                 const zPos = 180 - (j * 40); 
                 const spotMesh = new THREE.Mesh(this.spotGeometry, this.spotLightMaterial);
@@ -268,8 +272,8 @@ export default class Hall {
         const cameraZ = this.camera.position.z;
         const distanceX = Math.abs(this.camera.position.x);
         
-        const isNearFromInside = (cameraZ <= this.doorZ && (this.doorZ - cameraZ) < 60);
-        const isNearFromOutside = (cameraZ > this.doorZ && (cameraZ - this.doorZ) < 60);
+        const isNearFromInside = (cameraZ <= this.doorZ && (this.doorZ - cameraZ) < 40);
+        const isNearFromOutside = (cameraZ > this.doorZ && (cameraZ - this.doorZ) < 40);
 
         if ((isNearFromInside || isNearFromOutside) && distanceX < 35) {
             this.leftDoorTargetX = -10 - this.maxOpenDistance;
