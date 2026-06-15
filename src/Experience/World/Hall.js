@@ -8,6 +8,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 export default class Hall {
     constructor() {
         this.gltfLoader = new GLTFLoader();
+import MaskingWall from './MaskingWall.js'; // استدعاء الكلاس الجديد
+
+export default class Hall {
+    constructor() {
         this.experience = new Experience();
         this.scene = this.experience.scene;
         this.camera = this.experience.camera.instance;
@@ -37,7 +41,13 @@ export default class Hall {
         this.buildSecondSodaFridge(); 
         this.buildNeonSignOnBackWall(); 
         
+        
+        // استدعاء خطوط البولينغ
         this.bowlingLanes = new BowlingLanes(this.container);
+        
+        // استدعاء جدار الحجب المعلق والقواطع الخلفية بشكل آمن ومستقل
+        this.maskingWall = new MaskingWall(this.container);
+        
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
@@ -80,7 +90,7 @@ export default class Hall {
 
         this.bottomCeilingMaterial = new THREE.MeshStandardMaterial({
             map: this.ceilingTexture,
-            color: 0xffffff,
+            color: 0xffffff, // إرجاع اللون الأبيض الأصلي للسقف لمنع تضرر الإضاءة
             roughness: 0.6,
             metalness: 0.1
         });
