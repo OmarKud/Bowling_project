@@ -2,13 +2,17 @@ import * as THREE from 'three';
 import Experience from '../Experience.js';
 import CustomBox from './CustomBox.js';
 import HallLights from './HallLights.js'; 
+import BowlingLanes from './BowlingLanes.js';
 
 export default class Hall {
     constructor() {
+        
         this.experience = new Experience();
+        
         this.scene = this.experience.scene;
         this.camera = this.experience.camera.instance;
         this.textureLoader = new THREE.TextureLoader();
+
 
         this.container = new THREE.Group();
 
@@ -28,7 +32,7 @@ export default class Hall {
         this.buildZigZagNeon();
         this.buildFourDroppedCeilings();
         this.buildFrontWallAndGlassDoor();
-        
+        this.bowlingLanes = new BowlingLanes(this.container);
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
@@ -40,7 +44,7 @@ export default class Hall {
         this.wallTexture.wrapT = THREE.RepeatWrapping;
         this.wallTexture.repeat.set(12, 4);
 
-        this.floorTexture = this.textureLoader.load('/textures/rectangular.jpg');
+        this.floorTexture = this.textureLoader.load('/textures/bowling_wood_lane.jpg');
         this.floorTexture.wrapS = THREE.RepeatWrapping;
         this.floorTexture.wrapT = THREE.RepeatWrapping;
         this.floorTexture.repeat.set(16, 24);
