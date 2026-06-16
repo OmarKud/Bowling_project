@@ -7,6 +7,7 @@ import BallReturnSystem from './BallReturnSystem.js';
 import BowlingLanes from './BowlingLanes.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import MaskingWall from './MaskingWall.js'; 
+import Pins from './Pins.js';
 
 export default class Hall {
     constructor() {
@@ -45,6 +46,10 @@ export default class Hall {
         
         this.bowlingLanes = new BowlingLanes(this.container);
         this.maskingWall = new MaskingWall(this.container);
+       this.gltfLoader.load('/models/bowling_pin.glb', (gltf) => {
+    const pinModel = gltf.scene;
+    this.pins = new Pins(this.container, pinModel);
+});
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
