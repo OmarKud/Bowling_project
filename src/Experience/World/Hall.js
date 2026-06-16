@@ -40,16 +40,24 @@ export default class Hall {
         this.buildFrontGridPanels(); 
         this.buildSodaFridge();
         this.buildSecondSodaFridge(); 
-        
-        // بناء اللوغو النيون فوق الجدار المعلق مباشرة
         this.buildNeonSignOnBackWall(); 
         
         this.bowlingLanes = new BowlingLanes(this.container);
         this.maskingWall = new MaskingWall(this.container);
-       this.gltfLoader.load('/models/bowling_pin.glb', (gltf) => {
-    const pinModel = gltf.scene;
-    this.pins = new Pins(this.container, pinModel);
-});
+
+        this.gltfLoader.load('/models/bowling_pin.glb', (gltf) => {
+            const pinModel = gltf.scene;
+            
+            pinModel.traverse((child) => {
+                if (child.isMesh) {
+                    child.matrixAutoUpdate = false;
+                    child.updateMatrix();
+                }
+            });
+
+            this.pins = new Pins(this.container, pinModel);
+        });
+
         this.lights = new HallLights(this.container, this.scene);
         
         this.scene.add(this.container);
@@ -332,7 +340,6 @@ export default class Hall {
         neonMesh.rotation.y = 0; 
 
         this.container.add(neonMesh);
-        console.log('Neon Photo Sign fixed: Placed perfectly on top of the Masking Wall!');
     }
 
     buildSodaFridge() {
@@ -351,7 +358,7 @@ export default class Hall {
             },
             undefined,
             (error) => {
-                console.error('An error occurred while loading the fridge model:', error);
+                console.error(error);
             }
         );
     }
@@ -370,11 +377,10 @@ export default class Hall {
                 model.rotation.y = -Math.PI / 2; 
 
                 fridgeGroup.add(model);
-                console.log('Soda Fridge updated: smaller, moved back and left!');
             },
             undefined,
             (error) => {
-                console.error('An error occurred while loading the fridge model:', error);
+                console.error(error);
             }
         );
     }

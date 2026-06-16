@@ -23,11 +23,11 @@ export default class Pins {
         if (!this.pinModel) return;
 
         const startX = -((this.totalLanes - 1) * this.laneComponentWidth) / 2;
-        const rowSpacing = 3.5;
-        const pinSpacing = 2.2;
-        const startZ = -236;
         
-        const pinY = 3.6; 
+        const rowSpacing = 4.5;
+        const pinSpacing = 3.2;
+        const startZ = -234;
+        const pinY = 3.8; 
 
         const pinLayout = [
             { x: 0, z: 0 },
