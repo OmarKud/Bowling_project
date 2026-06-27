@@ -25,7 +25,7 @@ export default class Pins {
         const startX = -((this.totalLanes - 1) * this.laneComponentWidth) / 2;
         
         const rowSpacing = 4.5;
-        const pinSpacing = 3.2;
+        const pinSpacing = 5.2;
         const startZ = -234;
         const pinY = 3.8; 
 

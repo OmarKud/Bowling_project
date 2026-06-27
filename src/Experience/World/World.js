@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import Experience from '../Experience.js';
 import Hall from './Hall.js';
+import PlayerInteraction from './PlayerInteraction.js';
 
 export default class World {
     constructor() {
@@ -12,9 +13,10 @@ export default class World {
 
         this.setSky();
         this.setFloor();
-
         this.hall = new Hall();
         this.setKeyboardListener();
+        this.playerInteraction = new PlayerInteraction();
+
     }
 
     setSky() {
@@ -66,9 +68,10 @@ export default class World {
         });
     }
 
-    update() {
-            if (this.hall && typeof this.hall.update === 'function') {
-                this.hall.update();
-        }
+  update() {
+    if (this.hall && typeof this.hall.update === 'function') {
+        this.hall.update();
+        if (this.playerInteraction) this.playerInteraction.update();
     }
+}
 }

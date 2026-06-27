@@ -47,19 +47,18 @@ export default class Hall {
 
         this.gltfLoader.load('/models/bowling_pin.glb', (gltf) => {
             const pinModel = gltf.scene;
-            
-            pinModel.traverse((child) => {
-                if (child.isMesh) {
-                    child.matrixAutoUpdate = false;
-                    child.updateMatrix();
-                }
-            });
-
             this.pins = new Pins(this.container, pinModel);
         });
 
         this.lights = new HallLights(this.container, this.scene);
         
+        this.container.traverse((child) => {
+            if (child.isMesh && !child.userData.isDynamic) {
+                child.matrixAutoUpdate = false;
+                child.updateMatrix();
+            }
+        });
+
         this.scene.add(this.container);
     }
 
@@ -192,6 +191,7 @@ export default class Hall {
         const leafHeight = this.doorHeight - 0.2;
 
         this.leftDoorGroup = new THREE.Group();
+        this.leftDoorGroup.userData.isDynamic = true;
         this.leftDoorGroup.position.set(this.leftDoorCurrentX, leafHeight / 2, wallZ); 
         new CustomBox(this.leftDoorGroup, leafWidth, leafHeight, 0.3, this.glassMaterial, new THREE.Vector3(0, 0, 0));
         new CustomBox(this.leftDoorGroup, leafWidth, 0.3, 0.4, this.doorFrameMaterial, new THREE.Vector3(0, leafHeight/2, 0));
@@ -201,6 +201,7 @@ export default class Hall {
         this.container.add(this.leftDoorGroup);
         
         this.rightDoorGroup = new THREE.Group();
+        this.rightDoorGroup.userData.isDynamic = true;
         this.rightDoorGroup.position.set(this.rightDoorCurrentX, leafHeight / 2, wallZ); 
         new CustomBox(this.rightDoorGroup, leafWidth, leafHeight, 0.3, this.glassMaterial, new THREE.Vector3(0, 0, 0));
         new CustomBox(this.rightDoorGroup, leafWidth, 0.3, 0.4, this.doorFrameMaterial, new THREE.Vector3(0, leafHeight/2, 0));
@@ -321,7 +322,6 @@ export default class Hall {
 
     buildNeonSignOnBackWall() {
         const neonTexture = this.textureLoader.load('/textures/bowling_sign1.png');
-
         neonTexture.generateMipmaps = false; 
         neonTexture.minFilter = THREE.LinearFilter;
         neonTexture.magFilter = THREE.LinearFilter;
@@ -347,20 +347,12 @@ export default class Hall {
         fridgeGroup.position.set(-110, 0.1, -260); 
         this.container.add(fridgeGroup);
 
-        this.gltfLoader.load(
-            '/models/soda_fridge1.glb', 
-            (gltf) => {
-                const model = gltf.scene;
-                model.scale.set(20, 20, 20); 
-                model.rotation.y = 0; 
-
-                fridgeGroup.add(model);
-            },
-            undefined,
-            (error) => {
-                console.error(error);
-            }
-        );
+        this.gltfLoader.load('/models/soda_fridge1.glb', (gltf) => {
+            const model = gltf.scene;
+            model.scale.set(20, 20, 20); 
+            model.rotation.y = 0; 
+            fridgeGroup.add(model);
+        });
     }
 
    buildSecondSodaFridge() {
@@ -368,21 +360,12 @@ export default class Hall {
         fridgeGroup.position.set(88, 0.1, -260); 
         this.container.add(fridgeGroup);
 
-        this.gltfLoader.load(
-            '/models/soda_fridge.glb', 
-            (gltf) => {
-                const model = gltf.scene;
-                
-                model.scale.set(0.040, 0.040, 0.040); 
-                model.rotation.y = -Math.PI / 2; 
-
-                fridgeGroup.add(model);
-            },
-            undefined,
-            (error) => {
-                console.error(error);
-            }
-        );
+        this.gltfLoader.load('/models/soda_fridge.glb', (gltf) => {
+            const model = gltf.scene;
+            model.scale.set(0.040, 0.040, 0.040); 
+            model.rotation.y = -Math.PI / 2; 
+            fridgeGroup.add(model);
+        });
     }
 
     update() {

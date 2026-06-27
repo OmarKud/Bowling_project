@@ -6,8 +6,8 @@ import Renderer from './Renderer.js';
 import World from './World/World.js';
 import PhysicsWorld from './Physics/PhysicsWorld.js';
 import PhysicsEngine from './Physics/PhysicsEngine.js';
+import InputPanel from './Physics/InputPanel.js';
 
-import InputPanel from './Physics/InputPanel.js'; // تأكد من المسار الصحيح
 let instance = null;
 
 export default class Experience {
@@ -24,11 +24,10 @@ export default class Experience {
         this.time = new Time();
         this.scene = new THREE.Scene();
         this.camera = new Camera();
-this.physic = new PhysicsWorld();
+        this.physic = new PhysicsWorld();
         this.renderer = new Renderer();
         this.world = new World();
-                this.physics = new PhysicsEngine();
-
+        this.physics = new PhysicsEngine();
 
         this.sizes.on(() => {
             this.resize();
@@ -38,9 +37,16 @@ this.physic = new PhysicsWorld();
             this.update();
         });
         
-        // --- أضف هذا السطر هنا لتظهر اللوحة ---
         this.inputPanel = new InputPanel((settings) => {
-            this.physic.initializeSimulation(settings);
+            if (this.world && this.world.ball) {
+                this.physic.balls = [this.world.ball];
+            }
+            if (this.world && this.world.hall && this.world.hall.pins) {
+                this.physic.pins = this.world.hall.pins.pinsArray;
+            }
+            if (typeof this.physic.initializeSimulation === 'function') {
+                this.physic.initializeSimulation(settings);
+            }
         });
     }
 
@@ -51,8 +57,12 @@ this.physic = new PhysicsWorld();
 
     update() {
         this.camera.update();
-        this.physics.update();
+       
         this.world.update();
         this.renderer.update();
+        // في Experience.js داخل دالة update()
+ if (this.inputPanel && this.inputPanel.isLaunched) {
+            this.physic.update(this.time.deltaTime * 0.001);
+        }
     }
 }

@@ -12,6 +12,11 @@ export default class Camera {
         this.keys = { forward: false, backward: false, left: false, right: false };
         this.rotation = new THREE.Euler(0, 0, 0, 'YXZ');
 
+        // 🔥 تعريف المتجهات هنا مرة واحدة فقط لتجنب تدمير الذاكرة
+        this.movement = new THREE.Vector3();
+        this.forward = new THREE.Vector3();
+        this.right = new THREE.Vector3();
+
         this.setInstance();
         this.setMouseListener();
         this.setKeyboardListeners();
@@ -19,13 +24,13 @@ export default class Camera {
 
     setInstance() {
         this.instance = new THREE.PerspectiveCamera(45, this.sizes.width / this.sizes.height, 0.1, 2000);
-this.instance.position.set(0, 15, 250);
+        this.instance.position.set(0, 15, 250);
         this.scene.add(this.instance);
     }
 
     setMouseListener() {
         this.canvas.addEventListener('click', () => {
-            this.canvas.requestPointerLock();//hide mouse
+            this.canvas.requestPointerLock();
         });
 
         window.addEventListener('mousemove', (event) => {
@@ -40,17 +45,17 @@ this.instance.position.set(0, 15, 250);
 
     setKeyboardListeners() {
         window.addEventListener('keydown', (event) => {
-            if (event.key === 'w' || event.key === 'W' || event.key === 'ArrowUp') this.keys.forward = true;
-            if (event.key === 's' || event.key === 'S' || event.key === 'ArrowDown') this.keys.backward = true;
-            if (event.key === 'a' || event.key === 'A' || event.key === 'ArrowLeft') this.keys.left = true;
-            if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowRight') this.keys.right = true;
+            if (['w', 'W', 'ArrowUp'].includes(event.key)) this.keys.forward = true;
+            if (['s', 'S', 'ArrowDown'].includes(event.key)) this.keys.backward = true;
+            if (['a', 'A', 'ArrowLeft'].includes(event.key)) this.keys.left = true;
+            if (['d', 'D', 'ArrowRight'].includes(event.key)) this.keys.right = true;
         });
 
         window.addEventListener('keyup', (event) => {
-            if (event.key === 'w' || event.key === 'W' || event.key === 'ArrowUp') this.keys.forward = false;
-            if (event.key === 's' || event.key === 'S' || event.key === 'ArrowDown') this.keys.backward = false;
-            if (event.key === 'a' || event.key === 'A' || event.key === 'ArrowLeft') this.keys.left = false;
-            if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowRight') this.keys.right = false;
+            if (['w', 'W', 'ArrowUp'].includes(event.key)) this.keys.forward = false;
+            if (['s', 'S', 'ArrowDown'].includes(event.key)) this.keys.backward = false;
+            if (['a', 'A', 'ArrowLeft'].includes(event.key)) this.keys.left = false;
+            if (['d', 'D', 'ArrowRight'].includes(event.key)) this.keys.right = false;
         });
     }
 
@@ -59,36 +64,42 @@ this.instance.position.set(0, 15, 250);
         this.instance.updateProjectionMatrix();
     }
 
-    update() {
-        this.instance.quaternion.setFromEuler(this.rotation);
-        this.move();
+   update() {
+    this.instance.quaternion.setFromEuler(this.rotation);
+    this.move();
 
-        if (this.experience.physics) {
-            this.experience.physics.checkCameraBounds(this.instance.position);
-        }
-    }
+    const isAiming = this.experience.world.playerInteraction && 
+                     this.experience.world.playerInteraction.state === 'AIMING';
+
+    // if (this.experience.physics && !isAiming) {
+    //     this.experience.physics.checkCameraBounds(this.instance.position);
+    // }
+}
 
     move() {
+    
         const speed = 0.05 * this.time.delta;
-        const movement = new THREE.Vector3();
-        const forward = new THREE.Vector3();
         
-        this.instance.getWorldDirection(forward);
-        forward.y = 0;
-        forward.normalize();
+        // 🔥 تصفير القيم بدلاً من إنشاء كائنات جديدة
+        this.movement.set(0, 0, 0);
+        this.forward.set(0, 0, 0);
+        this.right.set(0, 0, 0);
+        
+        this.instance.getWorldDirection(this.forward);
+        this.forward.y = 0;
+        this.forward.normalize();
 
-        const right = new THREE.Vector3();
-        right.crossVectors(forward, this.instance.up).normalize();
+        this.right.crossVectors(this.forward, this.instance.up).normalize();
 
-        if (this.keys.forward) movement.add(forward);
-        if (this.keys.backward) movement.sub(forward);
-        if (this.keys.right) movement.add(right);
-        if (this.keys.left) movement.sub(right);
+        if (this.keys.forward) this.movement.add(this.forward);
+        if (this.keys.backward) this.movement.sub(this.forward);
+        if (this.keys.right) this.movement.add(this.right);
+        if (this.keys.left) this.movement.sub(this.right);
 
-        if (movement.lengthSq() > 0) {
-            movement.normalize().multiplyScalar(speed);
-            this.instance.position.add(movement);
-
+        if (this.movement.lengthSq() > 0) {
+            this.movement.normalize().multiplyScalar(speed);
+            this.instance.position.add(this.movement);
         }
+      
     }
 }
