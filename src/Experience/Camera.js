@@ -70,10 +70,10 @@ export default class Camera {
 
     const isAiming = this.experience.world.playerInteraction && 
                      this.experience.world.playerInteraction.state === 'AIMING';
-
-    // if (this.experience.physics && !isAiming) {
-    //     this.experience.physics.checkCameraBounds(this.instance.position);
-    // }
+if (this.experience.physics && !isAiming) {
+        this.experience.physics.checkCameraBounds(this.instance.position);
+    }
+ 
 }
 
     move() {

@@ -59,10 +59,11 @@ export default class Experience {
         this.camera.update();
        
         this.world.update();
-        this.renderer.update();
         // في Experience.js داخل دالة update()
  if (this.inputPanel && this.inputPanel.isLaunched) {
             this.physic.update(this.time.deltaTime * 0.001);
         }
+        this.renderer.update();
+
     }
 }

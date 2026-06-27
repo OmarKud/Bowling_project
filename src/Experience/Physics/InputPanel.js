@@ -33,23 +33,54 @@ export default class InputPanel {
         this.buildPanel();
     }
 
-    buildPanel() {
-        // 📂 1. عناصر التحكم بالرمية - [مفتوح]
+ buildPanel() {
         const playerControls = this.gui.addFolder('Player Controls (Throw)');
         
-        playerControls.add(this.parameters, 'xStart', 6, 26).name('X Start (Position)').listen();
-        playerControls.add(this.parameters, 'yStart', 0.5, 2.5).name('Y Start (Height)').listen();
+        // 🚨 التعديل هنا: توسيع الحدود والربط اللحظي من البانل إلى المشهد (X)
+        playerControls.add(this.parameters, 'xStart', 6, 26).name('X Start (Position)').listen().onChange((value) => {
+            // تحديث مكان اللاعب والكرة فوراً عند سحب السلايدر
+            const interact = window.experience?.world?.playerInteraction;
+            if (interact && interact.state === 'AIMING') {
+                interact.camera.instance.position.x = value;
+                if (interact.heldBall) interact.heldBall.position.x = value;
+            }
+        });
+
+        // 🚨 التعديل هنا: رفع الـ Y إلى 5.5 والربط اللحظي (Y)
+        playerControls.add(this.parameters, 'yStart', 1.9, 5.5).name('Y Start (Height)').listen().onChange((value) => {
+            const interact = window.experience?.world?.playerInteraction;
+            if (interact && interact.state === 'AIMING' && interact.heldBall) {
+                interact.heldBall.position.y = value;
+            }
+        });
+
         playerControls.add(this.parameters, 'launchAngle', -45, 45).name('Launch Angle (Theta)');
-        playerControls.add(this.parameters, 'pushForce', 50, 600).name('Push Force (N)');
-        playerControls.add(this.parameters, 'rpm', 100, 700).name('Spin (RPM)');
-        playerControls.add(this.parameters, 'axisRotation', 0, 90).name('Axis Rotation');
+// 🚨 التعديل هنا: إضافة onChange مع هندسة رياضية عكسية لحساب الـ Z بناءً على القوة
+        playerControls.add(this.parameters, 'pushForce', 50, 600).name('Push Force (N)').listen().onChange((value) => {
+            const interact = window.experience?.world?.playerInteraction;
+            if (interact && interact.state === 'AIMING') {
+                // نفس الثوابت التي استخدمناها في PlayerInteraction
+                const minZ = 120;
+                const maxZ = 140;
+                const forceRange = 600 - 50; // 550
+                
+                // 🧮 المعادلة العكسية: أين يجب أن يكون الـ Z بناءً على القوة المختارة؟
+                const newZ = minZ + ((value - 50) / forceRange) * (maxZ - minZ);
+                
+                // تحريك الكاميرا (اللاعب) للمكان الجديد
+                interact.camera.instance.position.z = newZ;
+                
+                // تحريك الكرة لتتبع اللاعب
+                if (interact.heldBall) {
+                    interact.heldBall.position.z = newZ - 20;
+                }
+            }
+        });        playerControls.add(this.parameters, 'axisRotation', 0, 90).name('Axis Rotation');
         playerControls.add(this.parameters, 'axisTilt', 0, 90).name('Axis Tilt');
         
         this.launchController = playerControls.add(this.parameters, 'launch').name('🚀 LAUNCH BALL');
 
-        // 📂 2. الخواص الفيزيائية - [مغلق]
         const physicsSandbox = this.gui.addFolder('Physics Sandbox').close();
-        
         physicsSandbox.add(this.parameters, 'ballMass', 2.0, 7.5).name('Ball Mass (kg)');
         physicsSandbox.add(this.parameters, 'ballRadius', 0.5, 1.5).name('Ball Radius');
         physicsSandbox.add(this.parameters, 'oilDistance', 0.0, 18.28).name('Oil Distance (m)');
@@ -60,10 +91,14 @@ export default class InputPanel {
         physicsSandbox.add(this.parameters, 'pinHeight', 2.0, 5.0).name('Pin Height');
     }
 
-    updateFromGame(x, y) {
-        this.parameters.xStart = x;
-        this.parameters.yStart = y;
+    updateFromGame(x, y, force) {
+    this.parameters.xStart = parseFloat(x.toFixed(2));
+    this.parameters.yStart = parseFloat(y.toFixed(2));
+    // تحديث القوة إذا تم تمريرها
+    if (force !== undefined) {
+        this.parameters.pushForce = parseFloat(force.toFixed(2));
     }
+}
 
     setBall(ballMesh) {
         this.ball = ballMesh;
