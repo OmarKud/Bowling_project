@@ -54,8 +54,16 @@ export default class InputPanel {
             }
         });
 
-        playerControls.add(this.parameters, 'launchAngle', -45, 45).name('Launch Angle (Theta)');
-// 🚨 التعديل هنا: إضافة onChange مع هندسة رياضية عكسية لحساب الـ Z بناءً على القوة
+// استبدل السطر القديم في InputPanel.js بهذا السطر:
+playerControls.add(this.parameters, 'launchAngle', -45, 45)
+    .name('Launch Angle (Theta)')
+    .listen() // لتحديث السلايدر تلقائياً إذا تغيرت القيمة من الكيبورد
+    .onChange((value) => { // لتحديث اللعبة فوراً إذا حركت السلايدر بالماوس
+        const interact = window.experience?.world?.playerInteraction;
+        if (interact && interact.state === 'AIMING') {
+            interact.currentLaunchAngle = value;
+        }
+    });// 🚨 التعديل هنا: إضافة onChange مع هندسة رياضية عكسية لحساب الـ Z بناءً على القوة
         playerControls.add(this.parameters, 'pushForce', 50, 600).name('Push Force (N)').listen().onChange((value) => {
             const interact = window.experience?.world?.playerInteraction;
             if (interact && interact.state === 'AIMING') {
@@ -91,15 +99,21 @@ export default class InputPanel {
         physicsSandbox.add(this.parameters, 'pinHeight', 2.0, 5.0).name('Pin Height');
     }
 
-    updateFromGame(x, y, force) {
+updateFromGame(x, y, force, angle) {
+    // تحديث الإحداثيات
     this.parameters.xStart = parseFloat(x.toFixed(2));
     this.parameters.yStart = parseFloat(y.toFixed(2));
+    
     // تحديث القوة إذا تم تمريرها
     if (force !== undefined) {
         this.parameters.pushForce = parseFloat(force.toFixed(2));
     }
-}
 
+    // 🚨 التعديل المطلوب: تحديث الزاوية إذا تم تمريرها
+    if (angle !== undefined) {
+        this.parameters.launchAngle = parseFloat(angle.toFixed(1));
+    }
+}
     setBall(ballMesh) {
         this.ball = ballMesh;
     }
