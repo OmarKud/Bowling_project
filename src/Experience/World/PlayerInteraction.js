@@ -130,6 +130,13 @@ export default class PlayerInteraction {
 
     update() {
         if (this.state === 'AIMING' && this.heldBall) {
+
+            if (this.experience.inputPanel && this.experience.inputPanel.isLaunched) {
+                if (this.aimArrow.parent) {
+                    this.scene.remove(this.aimArrow); // إخفاء السهم أثناء دحرجة الكرة
+                }
+                return; // 🛑 إيقاف دالة اللاعب تماماً وترك السيطرة للفيزياء!
+            }
             const speed = 0.5;
             // الحركة
             if (this.camera.keys.right) this.camera.instance.position.x += speed;

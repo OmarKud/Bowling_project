@@ -37,17 +37,17 @@ export default class Experience {
             this.update();
         });
         
-        this.inputPanel = new InputPanel((settings) => {
-            if (this.world && this.world.ball) {
-                this.physic.balls = [this.world.ball];
-            }
-            if (this.world && this.world.hall && this.world.hall.pins) {
-                this.physic.pins = this.world.hall.pins.pinsArray;
-            }
-            if (typeof this.physic.initializeSimulation === 'function') {
-                this.physic.initializeSimulation(settings);
-            }
-        });
+   // في Experience.js
+// تأكد من أنك تمرر الدبابيس للمحرك الفيزيائي بعد اكتمال التحميل
+this.inputPanel = new InputPanel((settings) => {
+    // 🚨 الحل: المحرك الفيزيائي يجب أن يبحث عن الدبابيس في world.hall.pins
+    const pins = this.world.hall.pins ? this.world.hall.pins.pinsArray : [];
+    const ball = this.world.playerInteraction.heldBall; // الكرة التي يحملها اللاعب
+
+    if (typeof this.physic.initializeSimulation === 'function') {
+        this.physic.initializeSimulation(settings, ball, pins);
+    }
+});
     }
 
     resize() {
@@ -60,8 +60,8 @@ export default class Experience {
        
         this.world.update();
         // في Experience.js داخل دالة update()
- if (this.inputPanel && this.inputPanel.isLaunched) {
-            this.physic.update(this.time.deltaTime * 0.001);
+if (this.inputPanel && this.inputPanel.isLaunched) {
+            this.physic.update(this.time.delta * 0.001);
         }
         this.renderer.update();
 
