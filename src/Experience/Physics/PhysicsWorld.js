@@ -67,7 +67,7 @@ export default class PhysicsWorld {
 
         // السرعة الخطية من قانون نيوتن: a = F/m، ثم v ≈ a · dt_launch (ضربة 0.5 ثانية افتراضية)
         // أكثر واقعية: v = F / (mass * 10) — نُعطي push impulse / mass
-        const v0 = Math.min((force / mass) * 0.35, 28.0); // cap عند 28 m/s (حد واقعي بولينغ)
+        const v0 = Math.max(6.0, Math.min((force / mass) * 1.2, 12.0)); // min 6 m/s, max 12 m/s (realistic bowling range)
 
         // الزاوية تُعطي مكوّني X و Z
         // المحور Z السالب هو اتجاه المسار (نحو الدبابيس)
@@ -77,9 +77,10 @@ export default class PhysicsWorld {
         // ── تحويل موقع الكرة من وحدات رسومية → أمتار ──
         // Z_physics = (Z_screen_startZ - Z_mesh) / SCALE
         // نحتاج نعرف Z المرجعي للبداية — الكرة موضوعة عند z ≈ 100 (قريبة اللاعب)
+        // الكرة تبدأ دائماً على سطح المسار (y = radius) لتجنب فقدان الطاقة عند الهبوط
         const startPosPhysics = new THREE.Vector3(
             this.ballMesh.position.x / this.SCALE,
-            this.ballMesh.position.y / this.SCALE,
+            radius,  // على الأرض مباشرة
             this.ballMesh.position.z / this.SCALE
         );
 
@@ -118,11 +119,14 @@ export default class PhysicsWorld {
             console.warn('⚠️ لم يتم تحميل الدبابيس بعد.');
         } else {
             const currentLaneX = this.ballMesh.position.x;
-            const pinRadius    = 0.060 * (settings.pinHeight / 3.8); // m
+            const pinRadius    = 0.110 * (settings.pinHeight / 3.8); // m — قطر واقعي لقاعدة الدبوس
 
             allPins.forEach((mesh) => {
-                // أخذ دبابيس المسار الحالي فقط (±20 وحدة)
-                if (Math.abs(mesh.position.x - currentLaneX) >= 20) return;
+                // أخذ دبابيس المسار الحالي فقط — نطاق ±16 وحدة يضمن 10 دبابيس بالضبط
+                if (Math.abs(mesh.position.x - currentLaneX) >= 16) return;
+
+                // تجاهل الدبابيس التي سقطت في رمية سابقة
+                if (mesh.userData.isFallen) return;
 
                 // إعادة ضبط شكل الدبوس بناءً على pinHeight من البانل
                 const pinScale = 18 * (settings.pinHeight / 3.8);
@@ -184,12 +188,23 @@ export default class PhysicsWorld {
         }
 
         // ── الكرة ──
+        // الجاذبية تعمل فقط إذا الكرة في الهواء.
+        // إذا كانت على الأرض (y <= radius + ε) تُلغيها Normal Force — نحسب الاحتكاك فقط.
+        const onGround = body.position.y <= body.radius + 0.001;
+        if (!onGround) {
+            linAcc.y += this.gravity;
+        } else {
+            // قفل Y على الأرض تماماً لمنع التذبذب
+            body.position.y = body.radius;
+            body.velocity.y = 0;
+        }
+
         const speed = body.velocity.length();
         if (speed < 0.001) return { linAcc, angAcc };
 
         const mu   = this._getFriction(body);
-        const N    = body.mass * Math.abs(this.gravity);  // قوة ردّ الفعل الطبيعية (الأرض مستوية)
-        const fric = mu * N;                               // مقدار قوة الاحتكاك
+        const N    = body.mass * Math.abs(this.gravity);  // Normal force (mg)
+        const fric = mu * N;                               // قوة الاحتكاك
 
         // اتجاه الاحتكاك عكس الحركة (المستوى الأفقي)
         const horizVel = new THREE.Vector3(body.velocity.x, 0, body.velocity.z);
@@ -301,6 +316,9 @@ export default class PhysicsWorld {
     // حلّ الاصطدام بين جسمين كرويين (Impulse-based)
     // ─────────────────────────────────────────────────────────
     _resolveCollision(bodyA, bodyB) {
+        // الدبوس الساقط لا يشارك في أي تصادم لاحق
+        if (bodyB.isFallen) return;
+
         const diff = new THREE.Vector3().subVectors(bodyB.position, bodyA.position);
         // نتجاهل مكوّن Y للحفاظ على الدبابيس على الأرض لحين السقوط
         const diffFlat = new THREE.Vector3(diff.x, 0, diff.z);
@@ -334,8 +352,13 @@ export default class PhysicsWorld {
         bodyB.velocity.addScaledVector(impulse, invMassB);
 
         if (bodyB.isPin) {
-            bodyB.isFallen    = true;
-            bodyB.isSleeping  = false;
+            // الدبوس يسقط إذا اصطدم بالكرة مباشرة، أو إذا اصطدم بدبوس متحرك بسرعة كافية
+            const impactSpeed = Math.abs(vRelN);
+            const threshold   = bodyA.isPin ? 0.4 : 0.1; // pin-pin يحتاج طاقة أكبر من ball-pin
+            if (impactSpeed >= threshold) {
+                bodyB.isFallen   = true;
+                bodyB.isSleeping = false;
+            }
         }
 
         this._separateBodies(bodyA, bodyB, normal, minDist - dist);
@@ -351,15 +374,10 @@ export default class PhysicsWorld {
     // ضبط الكرة على الأرض (ترتد إن ضربت الأرض)
     // ─────────────────────────────────────────────────────────
     _resolveGround(body) {
-        const floorY = 0.0; // 0 في الفيزياء = سطح اللين
-        if (body.position.y - body.radius < floorY) {
-            body.position.y = floorY + body.radius;
-            if (body.velocity.y < 0) {
-                body.velocity.y = -body.velocity.y * body.restitution * 0.4;
-                // احتكاك أرضي إضافي عند الارتداد
-                body.velocity.x *= 0.95;
-                body.velocity.z *= 0.95;
-            }
+        // قفل الكرة على سطح المسار — بدون عقوبة سرعة أفقية
+        if (body.position.y < body.radius) {
+            body.position.y = body.radius;
+            body.velocity.y = 0;
         }
     }
 
@@ -395,14 +413,21 @@ export default class PhysicsWorld {
             pin.meshRef.position.z = pin.position.z * this.SCALE;
 
             if (pin.isFallen) {
-                // إمالة تدريجية نحو الأرض
-                pin.meshRef.rotation.x = THREE.MathUtils.lerp(
-                    pin.meshRef.rotation.x, -Math.PI / 2, 0.08
-                );
-                // نزول Y تدريجي
-                pin.meshRef.position.y = THREE.MathUtils.lerp(
-                    pin.meshRef.position.y, 0.5, 0.08
-                );
+                // إمالة سريعة 90° — easeOut خلال ~20 frames
+                const targetRot = -Math.PI / 2;
+                const diff      = targetRot - pin.meshRef.rotation.x;
+                if (Math.abs(diff) > 0.01) {
+                    pin.meshRef.rotation.x += diff * 0.18; // أسرع من 0.08
+                } else {
+                    pin.meshRef.rotation.x = targetRot;    // snap للهدف
+                }
+                // نزول Y بنفس السرعة
+                const yDiff = 0.0 - pin.meshRef.position.y;
+                if (Math.abs(yDiff) > 0.05) {
+                    pin.meshRef.position.y += yDiff * 0.18;
+                } else {
+                    pin.meshRef.position.y = 0.0;
+                }
             }
         });
     }

@@ -29,7 +29,8 @@ export default class InputPanel {
             pinMass     : 1.5,   // kg
             pinHeight   : 3.8,
 
-            launch: () => this._executeLaunch()
+            launch: () => this._executeLaunch(),
+            resetPins: () => this._resetPins()
         };
 
         this._buildPanel();
@@ -98,6 +99,9 @@ export default class InputPanel {
         this._launchController = player.add(this.parameters, 'launch')
             .name('🚀 LAUNCH BALL');
 
+        player.add(this.parameters, 'resetPins')
+            .name('🔄 Reset Pins');
+
         // ── Physics Sandbox ──────────────────────────────────────
         const sandbox = this.gui.addFolder('Physics Sandbox').close();
         sandbox.add(this.parameters, 'ballMass',    2.0, 7.5 ).name('Ball Mass (kg)');
@@ -160,5 +164,18 @@ export default class InputPanel {
             }
         };
         setTimeout(reEnable, 3000);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // إعادة ترتيب الدبابيس — تُستدعى من زر GUI
+    // ─────────────────────────────────────────────────────────
+    _resetPins() {
+        const pinsObj = window.experience?.world?.hall?.pins;
+        if (!pinsObj) {
+            console.warn('⚠️ Pins not available yet.');
+            return;
+        }
+        pinsObj.resetPins();
+        console.log('🔄 Pins reset to initial positions.');
     }
 }

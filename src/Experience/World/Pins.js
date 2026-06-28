@@ -66,4 +66,14 @@ export default class Pins {
             });
         }
     }
+
+    // ─── إعادة جميع الدبابيس لمواضعها وحالتها الأصلية ───────
+    resetPins() {
+        this.pinsArray.forEach((mesh) => {
+            mesh.position.copy(mesh.userData.initialPosition);
+            mesh.rotation.copy(mesh.userData.initialRotation);
+            mesh.userData.isFallen = false;
+            mesh.visible = true;
+        });
+    }
 }

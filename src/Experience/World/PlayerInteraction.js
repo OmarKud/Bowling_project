@@ -199,8 +199,8 @@ export default class PlayerInteraction {
 
         // قيود الحركة — ابقَ على المسار
         this.camera.instance.position.x = Math.max(
-            this.targetLaneX - 14,
-            Math.min(this.targetLaneX + 7, this.camera.instance.position.x)
+            this.targetLaneX - 12,
+            Math.min(this.targetLaneX +13, this.camera.instance.position.x)
         );
         this.camera.instance.position.z = Math.max(130, Math.min(150, this.camera.instance.position.z));
         this.camera.instance.position.y = 15;
