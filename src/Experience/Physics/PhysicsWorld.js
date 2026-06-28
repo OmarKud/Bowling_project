@@ -74,10 +74,7 @@ export default class PhysicsWorld {
         const vx = v0 * Math.sin(angle);
         const vz = -v0 * Math.cos(angle);
 
-        // ── تحويل موقع الكرة من وحدات رسومية → أمتار ──
-        // Z_physics = (Z_screen_startZ - Z_mesh) / SCALE
-        // نحتاج نعرف Z المرجعي للبداية — الكرة موضوعة عند z ≈ 100 (قريبة اللاعب)
-        // الكرة تبدأ دائماً على سطح المسار (y = radius) لتجنب فقدان الطاقة عند الهبوط
+        // الكرة تبدأ دائماً على سطح المسار (y = radius) بغض النظر عن ارتفاعها في المشهد
         const startPosPhysics = new THREE.Vector3(
             this.ballMesh.position.x / this.SCALE,
             radius,  // على الأرض مباشرة
@@ -86,6 +83,9 @@ export default class PhysicsWorld {
 
         // حفظ نقطة البداية لمزامنة الإحداثيات لاحقاً
         this._ballScreenOrigin = this.ballMesh.position.clone();
+        // ── تعديل: نحفظ Y الرسومي كـ radius*SCALE لا كـ position.y الحقيقي
+        // هذا يضمن أن الكرة ترسم على الأرض دائماً من أول فريم
+        this._ballScreenOrigin.y = radius * this.SCALE;
         this._ballPhysicsOrigin = startPosPhysics.clone();
 
         // ── السرعة الزاوية من RPM ──
@@ -316,8 +316,9 @@ export default class PhysicsWorld {
     // حلّ الاصطدام بين جسمين كرويين (Impulse-based)
     // ─────────────────────────────────────────────────────────
     _resolveCollision(bodyA, bodyB) {
-        // الدبوس الساقط لا يشارك في أي تصادم لاحق
-        if (bodyB.isFallen) return;
+        // ── تعديل: الدبوس الساقط يكمل يصطدم بالدبابيس الأخرى
+        // لكن لا يصطدم بالكرة مجدداً (لتجنب الارتداد غير الطبيعي)
+        if (bodyB.isFallen && !bodyA.isPin) return;
 
         const diff = new THREE.Vector3().subVectors(bodyB.position, bodyA.position);
         // نتجاهل مكوّن Y للحفاظ على الدبابيس على الأرض لحين السقوط
@@ -349,6 +350,8 @@ export default class PhysicsWorld {
 
         // الكرة تفقد جزءاً صغيراً من سرعتها
         if (!bodyA.isPin) bodyA.velocity.addScaledVector(impulse, -invMassA * 0.15);
+
+        // ── تعديل: إعطاء الدبوس velocity أفقية عند الاصطدام
         bodyB.velocity.addScaledVector(impulse, invMassB);
 
         if (bodyB.isPin) {
@@ -358,6 +361,8 @@ export default class PhysicsWorld {
             if (impactSpeed >= threshold) {
                 bodyB.isFallen   = true;
                 bodyB.isSleeping = false;
+                // ── تعديل: دفع إضافي أفقي عند السقوط ليصطدم بالدبابيس المجاورة
+                bodyB.velocity.addScaledVector(normal, j * invMassB * 2.0);
             }
         }
 
@@ -387,14 +392,14 @@ export default class PhysicsWorld {
     _syncMeshes() {
         // ── الكرة ──
         if (this.ballMesh && this.ballBody) {
-            // تحويل: موقع رسومي = موقع فيزيائي × SCALE
-            // لكن نحتاج تعويض نقطة الأصل لأن الكرة تبدأ عند موقع رسومي ≠ 0
             const dp = new THREE.Vector3().subVectors(
                 this.ballBody.position,
                 this._ballPhysicsOrigin
             );
             this.ballMesh.position.x = this._ballScreenOrigin.x + dp.x * this.SCALE;
-            this.ballMesh.position.y = this._ballScreenOrigin.y + dp.y * this.SCALE;
+            // ── تعديل: Y الرسومي مباشرة من موقع الفيزياء × SCALE
+            // هذا يمنع الكرة من الطيران لأن _ballScreenOrigin.y أصبح = radius*SCALE
+            this.ballMesh.position.y = this.ballBody.position.y * this.SCALE;
             this.ballMesh.position.z = this._ballScreenOrigin.z + dp.z * this.SCALE;
 
             // تدوير الكرة بناءً على الـ angular velocity
@@ -493,6 +498,8 @@ export default class PhysicsWorld {
                 for (let j = i + 1; j < this.pinsBodies.length; j++) {
                     const pA = this.pinsBodies[i];
                     const pB = this.pinsBodies[j];
+                    // ── تعديل: نشغّل التصادم إذا أي واحد منهم متحرك (مش نايم)
+                    // حتى الدبوس الواقع يكمل يدفع جيرانه
                     if (!pA.isSleeping || !pB.isSleeping) {
                         this._resolveCollision(pA, pB);
                     }
