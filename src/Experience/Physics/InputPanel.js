@@ -104,22 +104,32 @@ export default class InputPanel {
         // ── Physics Sandbox ──────────────────────────────────────
         const sandbox = this.gui.addFolder('Physics Sandbox').close();
         sandbox.add(this.parameters, 'ballMass',    2.0, 7.5 ).name('Ball Mass (kg)');
-const DEFAULT_BALL_SCALE = 2.7;
-const DEFAULT_RADIUS = 1.1;
-const DEFAULT_BALL_Y = 2.5;
+const DEFAULT_BALL_SCALE = 2.7; 
+        const DEFAULT_RADIUS = 1.1;
 
+        // ...existing code...
 sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
     .name('Ball Radius')
     .onChange((value) => {
-
         if (!this.ball) return;
 
-        // تغيير الحجم
-        const scale = DEFAULT_BALL_SCALE * (value / DEFAULT_RADIUS);
-        this.ball.scale.set(scale, scale, scale);
+        // 1) تغيير الحجم
+        const scaleRatio = value / DEFAULT_RADIUS;
+        const newScale = DEFAULT_BALL_SCALE * scaleRatio;
+        this.ball.scale.set(newScale, newScale, newScale);
 
-        // حالياً لا نغير الـ Y حتى لا نفسد الفيزياء
-        // سنحسبه لاحقاً بطريقة صحيحة
+        // 2) الارتفاع الصحيح حسب نصف القطر الجديد
+        const currentVisualRadius = 2.7 * scaleRatio;
+
+        // ارفع الكرة دائمًا للحد الأدنى المطلوب
+        const newY = Math.max(this.ball.position.y, currentVisualRadius);
+        this.ball.position.y = newY;
+        this.parameters.yStart = parseFloat(newY.toFixed(2));
+
+        const interact = window.experience?.world?.playerInteraction;
+        if (interact?.state === 'AIMING') {
+            if (interact.heldBall) interact.heldBall.position.y = newY;
+        }
     });
      sandbox.add(this.parameters, 'oilDistance', 0.0, 18.28).name('Oil Distance (m)');
         sandbox.add(this.parameters, 'muOil',       0.01, 0.1 ).name('μ Oil');
@@ -149,6 +159,8 @@ sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
     // تنفيذ الإطلاق
     // ─────────────────────────────────────────────────────────
     _executeLaunch() {
+
+        this.parameters.yStart = Math.max(this.parameters.yStart, 2.7 * (this.parameters.ballRadius / 1.1));
         // التحقق من وجود الكرة قبل الإطلاق
         if (!this.ball) {
             console.warn('⚠️ لم يتم ربط الكرة بعد. ادخل وضع التصويب (ENTER) أولاً.');

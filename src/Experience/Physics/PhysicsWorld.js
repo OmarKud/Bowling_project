@@ -55,30 +55,32 @@ export default class PhysicsWorld {
             isSleeping : false,
             meshRef    : options.meshRef ?? null
         };
-    }
-
-    // ─────────────────────────────────────────────────────────
-    initializeSimulation(settings, _ballMesh, _pinsMeshes) {
+    }initializeSimulation(settings, _ballMesh, _pinsMeshes) {
         this.settings    = settings;
         this.accumulator = 0.0;
         this.pinsBodies  = [];
 
-        // reset حالة الحفرة في كل رمية جديدة
-        this._gutterAlerted     = false;
-        this._gutterLockedX     = null;
+        this._gutterAlerted      = false;
+        this._gutterLockedX      = null;
         this._gutterLockedFloorY = 0;
 
         this.ballMesh = this.experience.inputPanel.ball;
         if (!this.ballMesh) return;
 
-        const mass    = settings.ballMass;
-        const radius  = 0.108 * (settings.ballRadius / 1.1);
-        // حساب نسبة التكبير/التصغير بناءً على القيمة الافتراضية (1.1)
-const DEFAULT_BALL_SCALE = 2.7;
+        const mass       = settings.ballMass;
+        const scaleRatio = settings.ballRadius / 1.1;
+        const radius     = 0.108 * scaleRatio; // نصف القطر الفيزيائي
 
-const ballScale =
-DEFAULT_BALL_SCALE * (settings.ballRadius / 1.1);// تغيير حجم المجسم الرسومي ليتطابق مع الفيزياء
-this.ballMesh.scale.set(ballScale, ballScale, ballScale);        const force   = settings.pushForce;
+        const DEFAULT_BALL_SCALE = 2.7;
+        const ballScale = DEFAULT_BALL_SCALE * scaleRatio;
+        this.ballMesh.scale.set(ballScale, ballScale, ballScale);
+
+        // 🌟 إرجاع الأوفسيت الإجباري لمنع الغرق!
+        // يحسب الفرق بين الحجم الرسومي (2.7) والحجم الفيزيائي (2.16)
+        const scaledPhysicsRadius = 0.108 * this.SCALE; // 2.16
+        this.visualRadiusOffset = (DEFAULT_BALL_SCALE - scaledPhysicsRadius) * scaleRatio;
+
+        const force   = settings.pushForce;
         const angle   = THREE.MathUtils.degToRad(settings.launchAngle);
 
         const Ek      = 40.0;
@@ -87,11 +89,15 @@ this.ballMesh.scale.set(ballScale, ballScale, ballScale);        const force   =
         const vx      = v0 * Math.sin(angle);
         const vz      = -v0 * Math.cos(angle);
 
+        // خصم الإزاحة الرسومية لتبدأ الفيزياء من النقطة الصحيحة
+        const physicsVisualY = this.ballMesh.position.y - this.visualRadiusOffset;
+
         const startPosPhysics = new THREE.Vector3(
-    this.ballMesh.position.x / this.SCALE,
-    radius,
-    this.ballMesh.position.z / this.SCALE
-);
+            this.ballMesh.position.x / this.SCALE,
+            Math.max(physicsVisualY / this.SCALE, radius), 
+            this.ballMesh.position.z / this.SCALE
+        );
+
         this.currentLaneIndex = this._getLaneIndexFromX(startPosPhysics.x);
         this.experience.world?.hall?.bowlingScreens?.resetLaneDisplay?.(this.currentLaneIndex);
 
@@ -478,35 +484,46 @@ this.ballMesh.scale.set(ballScale, ballScale, ballScale);        const force   =
     }
 
     // ─────────────────────────────────────────────────────────
-    _resolveGround(body) {
-        // في الحفرة: Y يُعالج بـ _applyGutterConstraints
-        if (this._gutterAlerted) return;
+    // ...existing code...
+// ...existing code...
+_resolveGround(body) {
+    if (this._gutterAlerted) return;
 
-        if (body.position.y < body.radius) {
-            body.position.y = body.radius;
-            if (body.velocity.y < 0)
-                body.velocity.y = -body.velocity.y * body.restitution * 0.1;
+    // 🌟 إضافة هامش أمان (0.005) يمنع الاختراق الرقمي
+    const floorY = body.radius + 0.005; 
+
+    if (body.position.y < floorY) {
+        body.position.y = floorY;
+        
+        // امتصاص الصدمة (Damping) لمنع الارتداد غير المرغوب فيه
+        if (body.velocity.y < 0) {
+            body.velocity.y = -body.velocity.y * body.restitution * 0.1;
         }
     }
+}
+_syncMeshes() {
+    if (this.ballMesh && this.ballBody) {
+        const dp = new THREE.Vector3().subVectors(
+            this.ballBody.position, this._ballPhysicsOrigin
+        );
 
-    // ─────────────────────────────────────────────────────────
-    _syncMeshes() {
-        if (this.ballMesh && this.ballBody) {
-            const dp = new THREE.Vector3().subVectors(
-                this.ballBody.position, this._ballPhysicsOrigin
-            );
-            this.ballMesh.position.x = this._ballScreenOrigin.x + dp.x * this.SCALE;
-            this.ballMesh.position.y = this.ballBody.position.y  * this.SCALE;
-            this.ballMesh.position.z = this._ballScreenOrigin.z  + dp.z * this.SCALE;
+        this.ballMesh.position.x = this._ballScreenOrigin.x + dp.x * this.SCALE;
 
-            // دوران فقط خارج الحفرة
-            if (!this._gutterAlerted) {
-                const av = this.ballBody.angularVelocity;
-                this.ballMesh.rotation.x += av.x * this.fixedDt * 0.5;
-                this.ballMesh.rotation.y += av.y * this.fixedDt * 0.5;
-                this.ballMesh.rotation.z += av.z * this.fixedDt * 0.5;
-            }
+        // كان يسبب الغرق البصري
+        this.ballMesh.position.y =
+            (this.ballBody.position.y * this.SCALE) + this.visualRadiusOffset;
+
+        this.ballMesh.position.z = this._ballScreenOrigin.z + dp.z * this.SCALE;
+
+        if (!this._gutterAlerted) {
+            const av = this.ballBody.angularVelocity;
+            this.ballMesh.rotation.x += av.x * this.fixedDt * 0.5;
+            this.ballMesh.rotation.y += av.y * this.fixedDt * 0.5;
+            this.ballMesh.rotation.z += av.z * this.fixedDt * 0.5;
         }
+    }
+    // ...existing code...
+
 
         this.pinsBodies.forEach((pin) => {
             if (!pin.meshRef) return;
@@ -582,8 +599,7 @@ this.ballMesh.scale.set(ballScale, ballScale, ballScale);        const force   =
     update(deltaTime) {
         if (!this.isSimulationActive || !this.ballBody) return;
 
-        this.accumulator += Math.min(deltaTime, 0.05);
-
+this.accumulator += Math.min(deltaTime, 0.02);
         while (this.accumulator >= this.fixedDt) {
 
             if (!this.ballBody.isSleeping) {
