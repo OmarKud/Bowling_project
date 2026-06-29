@@ -175,31 +175,33 @@ export default class PhysicsWorld {
     // هل الكرة تجاوزت حدود مسارها الأصلي؟
     // يعمل بناءً على مسار البداية فقط — لا يتغير
     // ─────────────────────────────────────────────────────────
-    _checkGutterEntry(ballX) {
+  _checkGutterEntry(ballX) {
         if (this._gutterAlerted) return; // مقفول بالفعل
 
         const lane = this._getStartLane();
-        const pastStart = this.ballBody.position.z < this._ballPhysicsOrigin.z - 1.5;
+        
+        // ❌ تم حذف شرط الـ 1.5 متر الذي كان يعمي المحرك!
+        // وضعنا 0.1 متر فقط لتجنب وقوع الكرة وهي ما زالت في يد اللاعب
+        const pastStart = this.ballBody.position.z < this._ballPhysicsOrigin.z - 0.1;
         if (!pastStart) return;
 
-        const inLeftGutter  = ballX < lane.laneLeft  && ballX >= lane.gutterLeft;
-        const inRightGutter = ballX > lane.laneRight  && ballX <= lane.gutterRight;
-        const beyondLeft    = ballX < lane.gutterLeft;   // تجاوز الحفرة كلياً يساراً
-        const beyondRight   = ballX > lane.gutterRight;  // تجاوز الحفرة كلياً يميناً
+        // أي إحداثيات خارج حدود الخشب تُعتبر سقوطاً في الحفرة فوراً
+        const inLeftGutter  = ballX < lane.laneLeft;
+        const inRightGutter = ballX > lane.laneRight;
 
-        if (inLeftGutter || inRightGutter || beyondLeft || beyondRight) {
-            // ── دخلت الحفرة أو تجاوزتها — قفّل الحالة الآن ──
-            this._gutterAlerted     = true;
-            this._gutterLockedX     = ballX;                         // قفل X
-            this._gutterLockedFloorY = -this.GUTTER_DEPTH_PHYS;     // قفل Y الأرضية
-            console.log(`🚫 Gutter Ball! x=${ballX.toFixed(3)} | side=${inLeftGutter || beyondLeft ? 'LEFT' : 'RIGHT'}`);
+        if (inLeftGutter || inRightGutter) {
+            // ── دخلت الحفرة — قفّل الحالة الآن ──
+            this._gutterAlerted      = true;
+            this._gutterLockedX      = ballX;                         
+            this._gutterLockedFloorY = -this.GUTTER_DEPTH_PHYS;     
+            console.log(`🚫 Gutter Ball! x=${ballX.toFixed(3)} | side=${inLeftGutter ? 'LEFT' : 'RIGHT'}`);
         }
     }
 
   // ─────────────────────────────────────────────────────────
     // تطبيق قيود الحفرة (مُعدلة: انزلاق واقعي نحو قاع الحفرة المقعر)
     // ─────────────────────────────────────────────────────────
-    _applyGutterConstraints(body) {
+ _applyGutterConstraints(body) {
         const lane = this._getStartLane();
         const isLeftGutter = body.position.x < lane.center;
         
@@ -207,10 +209,19 @@ export default class PhysicsWorld {
             ? lane.center - this.LANE_HALF_WIDTH - (this.GUTTER_WIDTH_PHYS / 2)
             : lane.center + this.LANE_HALF_WIDTH + (this.GUTTER_WIDTH_PHYS / 2);
 
+        // 1. سحب الكرة بقوة أكبر لقاع الحفرة لمنعها من تسلق الجدار والهرب
         const diffX = gutterCenter - body.position.x;
-        body.velocity.x = diffX * 4.0; 
+        body.velocity.x = diffX * 8.0; 
         body.position.x += body.velocity.x * this.fixedDt;
 
+        // 2. قفل أمني (Hard Clamp): يمنع الكرة من العودة للممر أو القفز للمسار المجاور مهما بلغت سرعتها
+        if (isLeftGutter) {
+            if (body.position.x > lane.laneLeft) body.position.x = lane.laneLeft - 0.01;
+        } else {
+            if (body.position.x < lane.laneRight) body.position.x = lane.laneRight + 0.01;
+        }
+
+        // 3. قفل Y على قاع الحفرة
         const floorY = this._gutterLockedFloorY + body.radius;
         if (body.position.y < floorY || body.velocity.y < 0) {
             body.position.y = floorY;
@@ -218,8 +229,6 @@ export default class PhysicsWorld {
         }
 
         body.angularVelocity.set(0, 0, 0);
-        
-        // ── التعديل هنا: تخفيف الاحتكاك جداً لكي تكمل الكرة طريقها لآخر الحفرة ──
         body.velocity.z *= 0.999; 
     }
     // ─────────────────────────────────────────────────────────
@@ -618,5 +627,4 @@ export default class PhysicsWorld {
         if (ballScreenZ < -260 || (this.ballBody.isSleeping && allPinsSleeping)) {
             this._endSimulation(this._gutterAlerted);
         }
-    }
-}
+    }}
