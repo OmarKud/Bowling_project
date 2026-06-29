@@ -176,6 +176,10 @@ export default class InputPanel {
             return;
         }
         pinsObj.resetPins();
+
+        const interact = window.experience?.world?.playerInteraction;
+        interact?.restoreAimArrow?.();
+
         console.log('🔄 Pins reset to initial positions.');
     }
 }

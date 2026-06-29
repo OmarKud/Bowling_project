@@ -152,6 +152,25 @@ export default class PlayerInteraction {
         this.scene.remove(this.aimArrow);
     }
 
+    restoreAimArrow() {
+        if (!this.heldBall || this.state !== 'AIMING') return;
+
+        if (!this.aimArrow.parent) {
+            this.scene.add(this.aimArrow);
+        }
+
+        this.aimArrow.position.set(
+            this.heldBall.position.x,
+            this.heldBall.position.y + 2,
+            this.heldBall.position.z
+        );
+
+        this.direction
+            .set(0, 0, -1)
+            .applyAxisAngle(this.yAxis, THREE.MathUtils.degToRad(this.currentLaunchAngle));
+        this.aimArrow.setDirection(this.direction);
+    }
+
     // ─────────────────────────────────────────────────────────
     _adjustHeight(delta) {
         if (!this.heldBall) return;
