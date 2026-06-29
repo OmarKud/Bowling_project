@@ -9,6 +9,7 @@ export default class PhysicsWorld {
         this.ballBody  = null;
         this.pinsBodies = [];
         this.isSimulationActive = false;
+        this.currentLaneIndex = 0;
         this.fixedDt    = 1.0 / 120.0;
         this.accumulator = 0.0;
         this.settings   = null;
@@ -85,6 +86,8 @@ export default class PhysicsWorld {
             radius,
             this.ballMesh.position.z / this.SCALE
         );
+        this.currentLaneIndex = this._getLaneIndexFromX(startPosPhysics.x);
+        this.experience.world?.hall?.bowlingScreens?.resetLaneDisplay?.(this.currentLaneIndex);
 
         this._ballScreenOrigin   = this.ballMesh.position.clone();
         this._ballScreenOrigin.y = radius * this.SCALE;
@@ -169,6 +172,21 @@ export default class PhysicsWorld {
             gutterRight: nearest + this.LANE_HALF_WIDTH + this.GUTTER_WIDTH_PHYS
         };
         return this._startLane;
+    }
+
+    _getLaneIndexFromX(x) {
+        let bestIndex = 0;
+        let bestDistance = Infinity;
+
+        this.LANE_CENTERS_PHYS.forEach((center, index) => {
+            const distance = Math.abs(x - center);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = index;
+            }
+        });
+
+        return bestIndex;
     }
 
     // ─────────────────────────────────────────────────────────
@@ -542,17 +560,12 @@ export default class PhysicsWorld {
 
         console.log(`🎯 انتهت الرمية | سقط الآن: ${newlyFallen} | الإجمالي: ${totalFallen}/10 | Gutter: ${isGutterBall}`);
 
-        // إظهار النتيجة
         setTimeout(() => {
-            if (isGutterBall && newlyFallen === 0) {
-                alert('🚫 Gutter Ball! الكرة وقعت في الحفرة');
-            } else if (totalFallen === 10) {
-                alert('🎉 STRIKE / SPARE! أسقطت جميع الدبابيس!');
-            } else if (newlyFallen >= 7) {
-                alert(`👍 ممتاز! أسقطت ${newlyFallen} دبابيس. الإجمالي: ${totalFallen}/10`);
-            } else {
-                alert(`🎳 سقط ${newlyFallen} دبابيس. الإجمالي: ${totalFallen}/10`);
-            }
+            this.experience.world?.hall?.bowlingScreens?.showResultForLane?.(this.currentLaneIndex, {
+                newlyFallen,
+                totalFallen,
+                isGutterBall
+            });
         }, 800);
     }
 
