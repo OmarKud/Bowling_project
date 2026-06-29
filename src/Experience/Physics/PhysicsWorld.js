@@ -6,6 +6,7 @@ export default class PhysicsWorld {
         this.experience = new Experience();
         this.SCALE = 20.0;
         this.gravity = -9.81;
+        this.PIN_HEIGHT = 3.8;
         this.ballBody  = null;
         this.pinsBodies = [];
         this.isSimulationActive = false;
@@ -117,16 +118,16 @@ export default class PhysicsWorld {
         const allPins = this.experience.world?.hall?.pins?.pinsArray;
         if (allPins) {
             const currentLaneX = this.ballMesh.position.x;
-            const pinRadius    = 0.110 * (settings.pinHeight / 3.8);
+            const pinRadius    = 0.110 * (this.PIN_HEIGHT / 3.8);
 
             allPins.forEach((mesh) => {
                 if (Math.abs(mesh.position.x - currentLaneX) >= 16) return;
                 if (mesh.userData.isFallen) return;
 
-                const pinScale = 18 * (settings.pinHeight / 3.8);
+                const pinScale = 18 * (this.PIN_HEIGHT / 3.8);
                 mesh.scale.set(pinScale, pinScale, pinScale);
                 mesh.rotation.set(0, 0, 0);
-                mesh.position.y = settings.pinHeight;
+                mesh.position.y = this.PIN_HEIGHT;
 
                 const pinBody = this._createBody({
                     position   : new THREE.Vector3(

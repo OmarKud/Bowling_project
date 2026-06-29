@@ -27,7 +27,6 @@ export default class InputPanel {
             muDry       : 0.20,
             restitution : 0.6,
             pinMass     : 1.5,   // kg
-            pinHeight   : 3.8,
 
             launch: () => this._executeLaunch(),
             resetPins: () => this._resetPins()
@@ -111,7 +110,6 @@ export default class InputPanel {
         sandbox.add(this.parameters, 'muDry',       0.1,  0.5 ).name('μ Dry');
         sandbox.add(this.parameters, 'restitution', 0.1,  1.0 ).name('Restitution');
         sandbox.add(this.parameters, 'pinMass',     1.0,  2.5 ).name('Pin Mass (kg)');
-        sandbox.add(this.parameters, 'pinHeight',   2.0,  5.0 ).name('Pin Height');
     }
 
     // ─────────────────────────────────────────────────────────
