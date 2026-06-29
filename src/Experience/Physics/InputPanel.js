@@ -104,8 +104,24 @@ export default class InputPanel {
         // ── Physics Sandbox ──────────────────────────────────────
         const sandbox = this.gui.addFolder('Physics Sandbox').close();
         sandbox.add(this.parameters, 'ballMass',    2.0, 7.5 ).name('Ball Mass (kg)');
-        sandbox.add(this.parameters, 'ballRadius',  0.5, 1.5 ).name('Ball Radius');
-        sandbox.add(this.parameters, 'oilDistance', 0.0, 18.28).name('Oil Distance (m)');
+const DEFAULT_BALL_SCALE = 2.7;
+const DEFAULT_RADIUS = 1.1;
+const DEFAULT_BALL_Y = 2.5;
+
+sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
+    .name('Ball Radius')
+    .onChange((value) => {
+
+        if (!this.ball) return;
+
+        // تغيير الحجم
+        const scale = DEFAULT_BALL_SCALE * (value / DEFAULT_RADIUS);
+        this.ball.scale.set(scale, scale, scale);
+
+        // حالياً لا نغير الـ Y حتى لا نفسد الفيزياء
+        // سنحسبه لاحقاً بطريقة صحيحة
+    });
+     sandbox.add(this.parameters, 'oilDistance', 0.0, 18.28).name('Oil Distance (m)');
         sandbox.add(this.parameters, 'muOil',       0.01, 0.1 ).name('μ Oil');
         sandbox.add(this.parameters, 'muDry',       0.1,  0.5 ).name('μ Dry');
         sandbox.add(this.parameters, 'restitution', 0.1,  1.0 ).name('Restitution');

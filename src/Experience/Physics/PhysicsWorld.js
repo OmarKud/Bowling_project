@@ -73,7 +73,12 @@ export default class PhysicsWorld {
 
         const mass    = settings.ballMass;
         const radius  = 0.108 * (settings.ballRadius / 1.1);
-        const force   = settings.pushForce;
+        // حساب نسبة التكبير/التصغير بناءً على القيمة الافتراضية (1.1)
+const DEFAULT_BALL_SCALE = 2.7;
+
+const ballScale =
+DEFAULT_BALL_SCALE * (settings.ballRadius / 1.1);// تغيير حجم المجسم الرسومي ليتطابق مع الفيزياء
+this.ballMesh.scale.set(ballScale, ballScale, ballScale);        const force   = settings.pushForce;
         const angle   = THREE.MathUtils.degToRad(settings.launchAngle);
 
         const Ek      = 40.0;
@@ -83,10 +88,10 @@ export default class PhysicsWorld {
         const vz      = -v0 * Math.cos(angle);
 
         const startPosPhysics = new THREE.Vector3(
-            this.ballMesh.position.x / this.SCALE,
-            radius,
-            this.ballMesh.position.z / this.SCALE
-        );
+    this.ballMesh.position.x / this.SCALE,
+    radius,
+    this.ballMesh.position.z / this.SCALE
+);
         this.currentLaneIndex = this._getLaneIndexFromX(startPosPhysics.x);
         this.experience.world?.hall?.bowlingScreens?.resetLaneDisplay?.(this.currentLaneIndex);
 
