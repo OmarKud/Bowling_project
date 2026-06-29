@@ -111,7 +111,33 @@ export default class InputPanel {
         sandbox.add(this.parameters, 'muDry',       0.1,  0.5 ).name('μ Dry');
         sandbox.add(this.parameters, 'restitution', 0.1,  1.0 ).name('Restitution');
         sandbox.add(this.parameters, 'pinMass',     1.0,  2.5 ).name('Pin Mass (kg)');
-        sandbox.add(this.parameters, 'pinHeight',   2.0,  5.0 ).name('Pin Height');
+        sandbox.add(this.parameters, 'pinHeight',   2.0,  5.0 ).name('Pin Height')
+            .onChange((value) => this._updatePinsHeightLive(value));
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // تحديث ارتفاع/حجم الـ10 pins التابعة لمسار اللاعب الحالي فقط، لحظياً
+    // (نفس صيغة pinScale المستخدمة في PhysicsWorld.initializeSimulation
+    //  حتى تطابق ما سيحدث فعلياً عند الإطلاق، دون التأثير على المسارات الأخرى
+    //  أو على الدبابيس الساقطة isFallen)
+    // ─────────────────────────────────────────────────────────
+    _updatePinsHeightLive(value) {
+        if (this.isLaunched) return; // لا تعدّل أثناء محاكاة جارية
+
+        const interact   = window.experience?.world?.playerInteraction;
+        const allPins     = window.experience?.world?.hall?.pins?.pinsArray;
+        if (!interact || !allPins) return;
+
+        const currentLaneX = interact.targetLaneX;
+        const pinScale      = 18 * (value / 3.8);
+
+        allPins.forEach((mesh) => {
+            if (Math.abs(mesh.position.x - currentLaneX) >= 16) return;
+            if (mesh.userData.isFallen) return;
+
+            mesh.scale.set(pinScale, pinScale, pinScale);
+            mesh.position.y = value;
+        });
     }
 
     // ─────────────────────────────────────────────────────────

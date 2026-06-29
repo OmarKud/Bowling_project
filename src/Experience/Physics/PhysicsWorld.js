@@ -122,6 +122,7 @@ export default class PhysicsWorld {
             allPins.forEach((mesh) => {
                 if (Math.abs(mesh.position.x - currentLaneX) >= 16) return;
                 if (mesh.userData.isFallen) return;
+                
 
                 const pinScale = 18 * (settings.pinHeight / 3.8);
                 mesh.scale.set(pinScale, pinScale, pinScale);
