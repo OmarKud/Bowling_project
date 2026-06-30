@@ -516,12 +516,12 @@ export default class PhysicsWorld {
 _resolveGround(body) {
     if (this._gutterAlerted) return;
 
-    // 🌟 الأرضية الصحيحة = سطح المسار الحقيقي (LANE_SURFACE_OFFSET) + نصف القطر
-    // + هامش أمان رقمي (0.005) يمنع الاختراق. هاد هو إصلاح "الغرق" عند تغيير نصف القطر:
-    // قبلاً كانت الأرضية = radius فقط (بافتراض y=0 سطح المسار)، بينما السطح الحقيقي
-    // أعلى بـ 0.3 وحدة مشهد (LANE_SURFACE_OFFSET بوحدات الفيزياء)، فكانت كل كرة تغرق
-    // بنفس المقدار الثابت — وكان واضح أكثر كل ما صغّرنا نصف القطر.
-    const floorY = body.radius + this.LANE_SURFACE_OFFSET + 0.005;
+    // 🌟 الأرضية الصحيحة = سطح المسار الحقيقي (LANE_SURFACE_OFFSET) + نصف القطر.
+    // مهم: هاد لازم يطابق بالضبط نفس threshold الـ onGround المستخدم بـ
+    // _computeAccelerations (floorY + radius + 0.001)، وإلا الكرة بترتجف بين
+    // onGround=true/false كل خطوة فيزياء، وهالشي كان يعطّل تأثير الاحتكاك
+    // (وبالتالي RPM وOil Distance) لأنه friction بس بتنطبق لما onGround=true.
+    const floorY = body.radius + this.LANE_SURFACE_OFFSET;
 
     // ── تتبّع بداية الهبوط (أول لحظة تصبح فيها الكرة فوق الأرضية فعلياً) ──
     if (body.position.y > floorY + 0.001) {
