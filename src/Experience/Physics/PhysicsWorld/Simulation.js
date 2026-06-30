@@ -49,9 +49,9 @@ export default {
     const h = settings.yStart / this.SCALE;
     const Ek = mass * 9.81 * h;
 
-    // delta_t = زمن دفعة ذراع اللاعب (غير وارد كمدخل صريح بالملف، فنثبته
-    // كقيمة واقعية لحركة بندولية لذراع بشري - تقريباً 0.1-0.15 ثانية)
-    const delta_t = 0.12;
+    // delta_t = زمن دفعة ذراع اللاعب أثناء التماس النهائي قبل الإفلات.
+    // مثبتة بـ 0.05 ثانية مطابقةً حرفياً لما ورد بالوثيقة ص24 (Δt = 0.05)
+    const delta_t = 0.05;
 
     const v0 = Math.sqrt((2 * Ek) / mass) + (force * delta_t) / mass;
     const vx = v0 * Math.sin(angle);
@@ -171,13 +171,29 @@ export default {
       pin.meshRef.position.z = pin.position.z * this.SCALE;
 
       if (pin.isFallen) {
-        const targetRot = -Math.PI / 2;
-        const diff = targetRot - pin.meshRef.rotation.x;
-        if (Math.abs(diff) > 0.01) pin.meshRef.rotation.x += diff * 0.18;
-        else pin.meshRef.rotation.x = targetRot;
-        const yDiff = 0.0 - pin.meshRef.position.y;
+        // محور السقوط (fallAxis) محسوب بـ Collisions.js لحظة ما الدبوس
+        // وقع، حسب اتجاه الدفعة الفعلية يلي ضربته (يمين/شمال/قدام...)
+        // مش دايماً لورا متل قبل. منبني عليه كواتيرنيون هدف وبندور
+        // الدبوس نحوه بانسيابية (slerp) بدل قفزة مفاجئة أو دوران ثابت.
+        if (!pin.meshRef.userData.fallTargetQuat) {
+          const axis = pin.fallAxis || new THREE.Vector3(1, 0, 0);
+          pin.meshRef.userData.fallTargetQuat = new THREE.Quaternion()
+            .copy(pin.meshRef.quaternion)
+            .premultiply(new THREE.Quaternion().setFromAxisAngle(axis, Math.PI / 2));
+
+          // ارتفاع الاستقرار الصحيح للدبوس وهو نايم على جنبه = نصف قطره
+          // الفيزيائي (مش صفر) عشان ما يغرق/يختفي جوا أرضية المسار
+          pin.meshRef.userData.fallRestY = pin.radius * this.SCALE;
+        }
+
+        pin.meshRef.quaternion.slerp(pin.meshRef.userData.fallTargetQuat, 0.18);
+
+        const restY = pin.meshRef.userData.fallRestY;
+        const yDiff = restY - pin.meshRef.position.y;
         if (Math.abs(yDiff) > 0.05) pin.meshRef.position.y += yDiff * 0.18;
-        else pin.meshRef.position.y = 0.0;
+        else pin.meshRef.position.y = restY;
+      } else {
+        pin.meshRef.userData.fallTargetQuat = null;
       }
     });
   },
@@ -185,7 +201,7 @@ export default {
   // بناء نص التنبيه المنبثق حسب نتيجة الرمية، بنفس منطق الحالات
   // المعروضة عالشاشة بالقاعة (BowlingScreens.showResultForLane)
   _buildResultAlertMessage({ newlyFallen, totalFallen, isGutterBall }) {
-    if (isGutterBall) {
+    if (isGutterBall && totalFallen === 0) {
       return "الكرة طاحت بالحفرة ولم يسقط أي دبوس";
     }
     if (totalFallen >= 10) {
@@ -226,7 +242,7 @@ export default {
       if (pin.isFallen && pin.meshRef) {
         newlyFallen++;
         pin.meshRef.userData.isFallen = true;
-        pin.meshRef.visible = false;
+       // pin.meshRef.visible = false;
       }
     });
 

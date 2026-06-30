@@ -22,6 +22,17 @@ export default {
             if (pin.velocity.y < 0)
                 pin.velocity.y = -pin.velocity.y * pin.restitution * 0.3;
         }
+
+        // تطبيق الدوران الحقيقي الناتج عن الزخم الزاوي المنقول بالتصادم
+        // (نقطة 3) على الموديل البصري طول ما الدبوس لسا واقف/عم يهتز من
+        // الضربة. بمجرد ما يصير isFallen=true، المسؤولية بتنتقل للحركة
+        // المبرمجة المضبوطة بـ _syncMeshes (lerp نحو -90°) عشان يضل
+        // السقوط نظيف ومستقر بصرياً ومايضل الدبوس يتذبذب لأبد الآبدين.
+        if (pin.meshRef && !pin.isFallen) {
+            pin.meshRef.rotation.x += pin.angularVelocity.x * dt;
+            pin.meshRef.rotation.y += pin.angularVelocity.y * dt;
+            pin.meshRef.rotation.z += pin.angularVelocity.z * dt;
+        }
     },
 
     // حل التصادم بين جسمين (كرة-دبوس أو دبوس-دبوس) عن طريق حفظ الزخم
@@ -60,11 +71,49 @@ export default {
         else              bodyA.velocity.addScaledVector(impulse, -invMassA);
         bodyB.velocity.addScaledVector(impulse, invMassB);
 
-        // الدبوس بيعتبر واقع إذا الدفعة يلي أخدها كانت أكبر من عتبة معينة
-        if (bodyB.isPin && Math.abs(j * invMassB) > (bodyA.isPin ? 1.2 : 0.3))
+        // نقل الزخم الزاوي الحقيقي (مطابق لمعادلة الوثيقة ص45:
+        // angularVelocity += cross(r, impulse) / inertia). بما إنه الـ
+        // impulse عنّا أفقي بالكامل (X,Z)، لازم نستخدم فرق الارتفاع
+        // الفعلي بين مركزي الكرة والدبوس كمتجه ذراع عمودي (rB.y) عشان
+        // نولّد عزم دوران حقيقي حول محور أفقي (الميلان/السقوط)، مو بس
+        // دوران حول المحور الرأسي. هيك الدبوس فعلياً بيدور وينقلب لما
+        // ينضرب، مو بس يتحرك بخط مستقيم وتأثيره الدوراني وهمي كل الوقت.
+        if (bodyB.isPin) {
+            const rB = new THREE.Vector3(
+                normal.x * bodyB.radius,
+                bodyA.position.y - bodyB.position.y,
+                normal.z * bodyB.radius
+            );
+            const angImpulseB = new THREE.Vector3().crossVectors(rB, impulse);
+            bodyB.angularVelocity.addScaledVector(angImpulseB, invMassB > 0 ? 1.0 / bodyB.inertia : 0);
+        }
+        if (bodyA.isPin) {
+            const rA = new THREE.Vector3(
+                -normal.x * bodyA.radius,
+                bodyB.position.y - bodyA.position.y,
+                -normal.z * bodyA.radius
+            );
+            const angImpulseA = new THREE.Vector3().crossVectors(rA, impulse).multiplyScalar(-1);
+            bodyA.angularVelocity.addScaledVector(angImpulseA, 1.0 / bodyA.inertia);
+        }
+
+        // الدبوس بيعتبر واقع إذا الدفعة يلي أخدها كانت أكبر من عتبة معينة.
+        // أول لحظة يتحول فيها الدبوس لحالة "واقع" منحسب محور سقوطه
+        // (fallAxis) بناءً على اتجاه الدفعة الفعلية (normal) يلي ضربته،
+        // عشان يطيح بنفس اتجاه الصدمة (يمين/شمال/قدام) مو دايماً لورا.
+        // منحسبها مرة وحدة بس (لما isFallen تتحول false->true) عشان ما
+        // تتغير وتسبب اهتزاز بصري لو انضرب الدبوس أكتر من مرة وهو واقع.
+        if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > (bodyA.isPin ? 1.2 : 0.3)) {
             bodyB.isFallen = true;
-        if (bodyA.isPin && Math.abs(j * invMassA) > (bodyB.isPin ? 1.2 : 0.3))
+            bodyB.fallAxis = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal).normalize();
+            if (bodyB.fallAxis.lengthSq() < 0.0001) bodyB.fallAxis.set(1, 0, 0);
+        }
+        if (bodyA.isPin && !bodyA.isFallen && Math.abs(j * invMassA) > (bodyB.isPin ? 1.2 : 0.3)) {
             bodyA.isFallen = true;
+            const normalA = normal.clone().multiplyScalar(-1);
+            bodyA.fallAxis = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normalA).normalize();
+            if (bodyA.fallAxis.lengthSq() < 0.0001) bodyA.fallAxis.set(1, 0, 0);
+        }
 
         this._separateBodies(bodyA, bodyB, normal, minDist - dist);
     },

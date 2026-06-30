@@ -69,6 +69,9 @@ Object.assign(PhysicsWorldBase.prototype, {
             position        : options.position        ?? new THREE.Vector3(),
             velocity        : options.velocity        ?? new THREE.Vector3(),
             angularVelocity : options.angularVelocity ?? new THREE.Vector3(),
+            // توجه الجسم (نقطة 4): كواتيرنيون يتبع دوران الدبوس الحقيقي
+            // حول كل المحاور، أساس معيار السقوط الفعلي (tiltAngle > 12°)
+            orientation     : options.orientation      ?? new THREE.Quaternion(),
             mass,
             radius,
             inertia    : (2 / 5) * mass * radius * radius,

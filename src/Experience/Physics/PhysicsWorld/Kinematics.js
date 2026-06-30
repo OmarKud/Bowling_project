@@ -217,6 +217,18 @@ export default {
             }
         }
 
+        // تخميد عام مستمر (نقطة 1 بالوثيقة ص39): بالوثيقة مطبق كضرب مباشر
+        // velocity *= (1-0.01*dt) بكل استدعاء، بغض النظر عن حالة الانزلاق.
+        // هون منطبقه كقوة تناسبية مستمرة a = -k*v بدل لمس body.velocity
+        // مباشرة، لأنه هاي الدالة بتتنادى 4 مرات بكل خطوة RK4 على حالات
+        // وسيطة مختلفة (b2,b3,b4)، ولو عدّلنا body.velocity هون كان رح
+        // يكسر منطق التكامل. الصيغتين متكافئتين تقريبًا لما dt صغير، وهاد
+        // التخميد هو يلي رح يخفف انجراف السرعة الجانبية المتراكم بمنطقة
+        // الزيت يلي حكينا عنها قبل.
+        const DAMPING_K = 0.01;
+        linAcc.addScaledVector(body.velocity, -DAMPING_K);
+        angAcc.addScaledVector(body.angularVelocity, -DAMPING_K);
+
         const gutterForce = this._computeGutterForce(body);
         linAcc.x += gutterForce.x / body.mass;
 
