@@ -31,11 +31,27 @@ export default class PhysicsWorld {
         this.CAPPING_RADIUS_PHYS = 2.5 / this.SCALE;     // 0.125 م
         this.GUTTER_DEPTH_PHYS   = 0.05;                 // عمق الحفرة (م)
 
+        // ══════════════════════════════════════════════════════
+        // 🌟 ارتفاع سطح المسار الحقيقي في المشهد (Scene Units)
+        // مأخوذ من BowlingLanes.js: laneGeometry height=0.2, position.y=0.2
+        //   → سطح المسار العلوي = 0.2 + 0.2/2 = 0.3 (وحدة مشهد)
+        // الفيزياء كانت تفترض أرضية عند y=0 دائماً، فكانت الكرة
+        // "تغرق" داخل خشب المسار بمقدار ثابت (0.3) بغض النظر عن نصف قطرها،
+        // وكلما صغّرنا الكرة كان الغرق الظاهري أوضح نسبةً لحجمها.
+        // هاد الثابت بيصحح المرجع الصفري لكل حسابات الأرضية فيزيائياً.
+        // ══════════════════════════════════════════════════════
+        this.LANE_SURFACE_OFFSET = 0.3 / this.SCALE; // 0.015 م
+
         // ── حالة الحفرة (تُقفل عند الدخول ولا تتغير) ──
         this._gutterAlerted  = false;
         this._gutterLockedX  = null;   // X مقفول داخل الحفرة
         this._gutterLockedXr = null;   // null حتى يُقفل
         this._gutterLockedFloorY = 0;  // Y أرضية الحفرة
+
+        // ── تتبع الهبوط (سقوط الكرة على المسار) لإظهار تأثير الارتفاع على قوة الارتطام ──
+        this._isFalling   = false;
+        this._fallStartY  = null;
+        this.lastImpactInfo = null; // { dropHeightScene, impactSpeed, impactForce }
     }
 
     // ─────────────────────────────────────────────────────────
@@ -63,6 +79,11 @@ export default class PhysicsWorld {
         this._gutterAlerted      = false;
         this._gutterLockedX      = null;
         this._gutterLockedFloorY = 0;
+
+        // ريسيت تتبع الهبوط لكل رمية جديدة
+        this._isFalling     = false;
+        this._fallStartY    = null;
+        this.lastImpactInfo = null;
 
         this.ballMesh = this.experience.inputPanel.ball;
         if (!this.ballMesh) return;
@@ -92,9 +113,13 @@ export default class PhysicsWorld {
         // خصم الإزاحة الرسومية لتبدأ الفيزياء من النقطة الصحيحة
         const physicsVisualY = this.ballMesh.position.y - this.visualRadiusOffset;
 
+        // 🌟 الحد الأدنى لارتفاع البداية الآن radius + LANE_SURFACE_OFFSET
+        // (مرجع الأرضية الفيزيائي الصحيح) بدل radius فقط، عشان ما تبلش الكرة وهي غاطسة بالخشب
+        const minStartY = radius + this.LANE_SURFACE_OFFSET;
+
         const startPosPhysics = new THREE.Vector3(
             this.ballMesh.position.x / this.SCALE,
-            Math.max(physicsVisualY / this.SCALE, radius), 
+            Math.max(physicsVisualY / this.SCALE, minStartY), 
             this.ballMesh.position.z / this.SCALE
         );
 
@@ -124,7 +149,7 @@ export default class PhysicsWorld {
             meshRef        : this.ballMesh
         });
 
-        console.log(`🎳 Ball Launch | v0: ${v0.toFixed(2)} m/s | angle: ${settings.launchAngle}°`);
+        console.log(`🎳 Ball Launch | v0: ${v0.toFixed(2)} m/s | angle: ${settings.launchAngle}° | startY: ${startPosPhysics.y.toFixed(3)} m | radius: ${radius.toFixed(3)} m`);
 
         const allPins = this.experience.world?.hall?.pins?.pinsArray;
         if (allPins) {
@@ -223,7 +248,8 @@ export default class PhysicsWorld {
             // ── دخلت الحفرة — قفّل الحالة الآن ──
             this._gutterAlerted      = true;
             this._gutterLockedX      = ballX;                         
-            this._gutterLockedFloorY = -this.GUTTER_DEPTH_PHYS;     
+            // 🌟 أرضية الحفرة الآن نسبة لسطح المسار الحقيقي (LANE_SURFACE_OFFSET) ناقص عمقها
+            this._gutterLockedFloorY = this.LANE_SURFACE_OFFSET - this.GUTTER_DEPTH_PHYS;     
             console.log(`🚫 Gutter Ball! x=${ballX.toFixed(3)} | side=${inLeftGutter ? 'LEFT' : 'RIGHT'}`);
         }
     }
@@ -336,7 +362,8 @@ export default class PhysicsWorld {
         }
 
         const lane    = this._getStartLane();
-        const floorY  = 0.0; // سطح المسار الطبيعي
+        // 🌟 سطح المسار الحقيقي (وليس صفر مطلق) — يطابق ارتفاع خشب المسار الفعلي
+        const floorY  = this.LANE_SURFACE_OFFSET;
         const onGround = body.position.y <= floorY + body.radius + 0.001;
 
         if (!onGround) {
@@ -489,16 +516,47 @@ export default class PhysicsWorld {
 _resolveGround(body) {
     if (this._gutterAlerted) return;
 
-    // 🌟 إضافة هامش أمان (0.005) يمنع الاختراق الرقمي
-    const floorY = body.radius + 0.005; 
+    // 🌟 الأرضية الصحيحة = سطح المسار الحقيقي (LANE_SURFACE_OFFSET) + نصف القطر
+    // + هامش أمان رقمي (0.005) يمنع الاختراق. هاد هو إصلاح "الغرق" عند تغيير نصف القطر:
+    // قبلاً كانت الأرضية = radius فقط (بافتراض y=0 سطح المسار)، بينما السطح الحقيقي
+    // أعلى بـ 0.3 وحدة مشهد (LANE_SURFACE_OFFSET بوحدات الفيزياء)، فكانت كل كرة تغرق
+    // بنفس المقدار الثابت — وكان واضح أكثر كل ما صغّرنا نصف القطر.
+    const floorY = body.radius + this.LANE_SURFACE_OFFSET + 0.005;
+
+    // ── تتبّع بداية الهبوط (أول لحظة تصبح فيها الكرة فوق الأرضية فعلياً) ──
+    if (body.position.y > floorY + 0.001) {
+        if (!this._isFalling) {
+            this._isFalling  = true;
+            this._fallStartY = body.position.y;
+        }
+    }
 
     if (body.position.y < floorY) {
-        body.position.y = floorY;
-        
-        // امتصاص الصدمة (Damping) لمنع الارتداد غير المرغوب فيه
-        if (body.velocity.y < 0) {
+        if (this._isFalling) {
+            // 🌟 لحظة الارتطام الفعلية بعد هبوط حر — نحسب تأثير الارتفاع على القوة
+            const dropHeightScene = Math.max(0, (this._fallStartY - floorY)) * this.SCALE; // بوحدات المشهد
+            const impactSpeed     = Math.abs(body.velocity.y);                              // m/s
+            const impactForce     = body.mass * impactSpeed / this.fixedDt;                 // تقريب القوة اللحظية (نيوتن)
+
+            this.lastImpactInfo = { dropHeightScene, impactSpeed, impactForce };
+            console.log(
+                `⬇️ هبوط الكرة (Y) | ارتفاع السقوط: ${dropHeightScene.toFixed(2)} وحدة مشهد | ` +
+                `سرعة الارتطام: ${impactSpeed.toFixed(2)} m/s | قوة الارتطام التقريبية: ${impactForce.toFixed(0)} N`
+            );
+
+            // 🌟 كلما زاد الارتفاع (وبالتالي سرعة الارتطام) زاد الارتداد وفقدان التوازن قليلاً — تأثير واقعي
+            const bounceFactor = THREE.MathUtils.clamp(impactSpeed / 3.0, 0, 1);
+            if (body.velocity.y < 0) {
+                body.velocity.y = -body.velocity.y * body.restitution * (0.05 + bounceFactor * 0.15);
+            }
+
+            this._isFalling = false;
+        } else if (body.velocity.y < 0) {
+            // امتصاص الصدمة (Damping) لمنع الارتداد غير المرغوب فيه عند التماس الخفيف العادي
             body.velocity.y = -body.velocity.y * body.restitution * 0.1;
         }
+
+        body.position.y = floorY;
     }
 }
 _syncMeshes() {
