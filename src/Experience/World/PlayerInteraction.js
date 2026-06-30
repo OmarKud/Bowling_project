@@ -165,9 +165,12 @@ export default class PlayerInteraction {
             this.heldBall.position.z
         );
 
-        this.direction
-            .set(0, 0, -1)
-            .applyAxisAngle(this.yAxis, THREE.MathUtils.degToRad(this.currentLaunchAngle));
+        // اتجاه السهم لازم يطابق بالضبط معادلة سرعة الكرة الفعلية عند
+        // الإطلاق (vx = sin(angle), vz = -cos(angle))، بدل ما نعتمد على
+        // applyAxisAngle حول yAxis لأنها بتعطي إشارة X معاكسة لمعادلة
+        // الفيزياء وهيك كان السهم يأشر بعكس جهة حركة الكرة فعليًا
+        const rad = THREE.MathUtils.degToRad(this.currentLaunchAngle);
+        this.direction.set(Math.sin(rad), 0, -Math.cos(rad));
         this.aimArrow.setDirection(this.direction);
     }
 
@@ -235,9 +238,15 @@ export default class PlayerInteraction {
             this.heldBall.position.y + 2,
             this.heldBall.position.z
         );
-        this.direction
-            .set(0, 0, -1)
-            .applyAxisAngle(this.yAxis, THREE.MathUtils.degToRad(this.currentLaunchAngle));
+        // اتجاه السهم لازم يطابق بالضبط معادلة سرعة الكرة الفعلية عند
+        // الإطلاق (vx = sin(angle), vz = -cos(angle))، نفس المنطق
+        // المستخدم بـ restoreAimArrow عشان السهم دايمًا يأشر بنفس
+        // جهة حركة الكرة الحقيقية
+        this.direction.set(
+            Math.sin(THREE.MathUtils.degToRad(this.currentLaunchAngle)),
+            0,
+            -Math.cos(THREE.MathUtils.degToRad(this.currentLaunchAngle))
+        );
         this.aimArrow.setDirection(this.direction);
 
         // مزامنة البانل
