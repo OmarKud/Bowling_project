@@ -4,8 +4,8 @@ import Time        from './Utils/Time.js';
 import Camera      from './Camera.js';
 import Renderer    from './Renderer.js';
 import World       from './World/World.js';
-import PhysicsWorld  from './Physics/PhysicsWorld.js';
-import PhysicsEngine from './Physics/PhysicsEngine.js';
+ import PhysicsWorld from './Physics/PhysicsWorld/index.js';
+ import PhysicsEngine from './Physics/PhysicsEngine.js';
 import InputPanel    from './Physics/InputPanel.js';
 
 let instance = null;
