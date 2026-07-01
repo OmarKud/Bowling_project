@@ -144,11 +144,11 @@ export default class InputPanel {
     // الحل: نفصل قيم الحركة (X,Y) عن قيم الإطلاق (Force, Angle) ونخلي
     // كل مجموعة بالمصدر الوحيد يلي المفروض تيجي منه.
     // ─────────────────────────────────────────────────────────
-    updateFromGame(x, y) {
+    updateFromGame(x, y, force, angle) {
         this.parameters.xStart = parseFloat(x.toFixed(2));
         this.parameters.yStart = parseFloat(y.toFixed(2));
-        // ❌ حذفنا: if (force !== undefined) this.parameters.pushForce = ...
-        // ❌ حذفنا: if (angle !== undefined) this.parameters.launchAngle = ...
+        if (force !== undefined) this.parameters.pushForce = parseFloat(force.toFixed(1));
+        if (angle !== undefined) this.parameters.launchAngle = parseFloat(angle.toFixed(1));
     }
 
     // ─────────────────────────────────────────────────────────
