@@ -80,7 +80,7 @@ export default class InputPanel {
                 const interact = window.experience?.world?.playerInteraction;
                 if (interact?.state === 'AIMING') {
                     // إعادة تعيين Z بناءً على القوة (منطق عكسي لما في PlayerInteraction)
-                    const newZ = 120 + ((value - 50) / 550) * 20;
+                    const newZ = 130 + ((value - 50) / 550) * 20;
                     interact.camera.instance.position.z = newZ;
                     if (interact.heldBall) interact.heldBall.position.z = newZ - 20;
                 }
