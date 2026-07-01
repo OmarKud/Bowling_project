@@ -79,7 +79,6 @@ export default class InputPanel {
             .onChange((value) => {
                 const interact = window.experience?.world?.playerInteraction;
                 if (interact?.state === 'AIMING') {
-                    // إعادة تعيين Z بناءً على القوة (منطق عكسي لما في PlayerInteraction)
                     const newZ = 120 + ((value - 50) / 550) * 20;
                     interact.camera.instance.position.z = newZ;
                     if (interact.heldBall) interact.heldBall.position.z = newZ - 20;
@@ -103,35 +102,32 @@ export default class InputPanel {
 
         // ── Physics Sandbox ──────────────────────────────────────
         const sandbox = this.gui.addFolder('Physics Sandbox').close();
-        sandbox.add(this.parameters, 'ballMass',    2.0, 7.5 ).name('Ball Mass (kg)');
-const DEFAULT_BALL_SCALE = 2.7; 
+        sandbox.add(this.parameters, 'ballMass', 2.0, 7.5).name('Ball Mass (kg)');
+
+        const DEFAULT_BALL_SCALE = 2.7;
         const DEFAULT_RADIUS = 1.1;
 
-        // ...existing code...
-sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
-    .name('Ball Radius')
-    .onChange((value) => {
-        if (!this.ball) return;
+        sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
+            .name('Ball Radius')
+            .onChange((value) => {
+                if (!this.ball) return;
 
-        // 1) تغيير الحجم
-        const scaleRatio = value / DEFAULT_RADIUS;
-        const newScale = DEFAULT_BALL_SCALE * scaleRatio;
-        this.ball.scale.set(newScale, newScale, newScale);
+                const scaleRatio = value / DEFAULT_RADIUS;
+                const newScale = DEFAULT_BALL_SCALE * scaleRatio;
+                this.ball.scale.set(newScale, newScale, newScale);
 
-        // 2) الارتفاع الصحيح حسب نصف القطر الجديد
-        const currentVisualRadius = 2.7 * scaleRatio;
+                const currentVisualRadius = DEFAULT_BALL_SCALE * scaleRatio;
+                const newY = Math.max(this.ball.position.y, currentVisualRadius);
+                this.ball.position.y = newY;
+                this.parameters.yStart = parseFloat(newY.toFixed(2));
 
-        // ارفع الكرة دائمًا للحد الأدنى المطلوب
-        const newY = Math.max(this.ball.position.y, currentVisualRadius);
-        this.ball.position.y = newY;
-        this.parameters.yStart = parseFloat(newY.toFixed(2));
+                const interact = window.experience?.world?.playerInteraction;
+                if (interact?.state === 'AIMING') {
+                    if (interact.heldBall) interact.heldBall.position.y = newY;
+                }
+            });
 
-        const interact = window.experience?.world?.playerInteraction;
-        if (interact?.state === 'AIMING') {
-            if (interact.heldBall) interact.heldBall.position.y = newY;
-        }
-    });
-     sandbox.add(this.parameters, 'oilDistance', 0.0, 18.28).name('Oil Distance (m)');
+        sandbox.add(this.parameters, 'oilDistance', 0.0, 18.28).name('Oil Distance (m)');
         sandbox.add(this.parameters, 'muOil',       0.01, 0.1 ).name('μ Oil');
         sandbox.add(this.parameters, 'muDry',       0.1,  0.5 ).name('μ Dry');
         sandbox.add(this.parameters, 'restitution', 0.1,  1.0 ).name('Restitution');
@@ -139,13 +135,20 @@ sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
     }
 
     // ─────────────────────────────────────────────────────────
-    // تُستدعى من PlayerInteraction لمزامنة البانل مع حركة اللاعب
+    // الإصلاح #1: updateFromGame بتحدّث بس xStart و yStart
+    // ولا تلمس pushForce ولا launchAngle.
+    //
+    // السبب: PlayerInteraction كانت تنادي هاي الدالة كل ما اللاعب
+    // يتحرك، فأي قيمة يكتبها المستخدم يدوياً بـ pushForce أو launchAngle
+    // كانت تتمسح فوراً وترجع للقيمة المحسوبة من موقع الكاميرا/الكرة.
+    // الحل: نفصل قيم الحركة (X,Y) عن قيم الإطلاق (Force, Angle) ونخلي
+    // كل مجموعة بالمصدر الوحيد يلي المفروض تيجي منه.
     // ─────────────────────────────────────────────────────────
-    updateFromGame(x, y, force, angle) {
+    updateFromGame(x, y) {
         this.parameters.xStart = parseFloat(x.toFixed(2));
         this.parameters.yStart = parseFloat(y.toFixed(2));
-        if (force !== undefined) this.parameters.pushForce = parseFloat(force.toFixed(1));
-        if (angle !== undefined) this.parameters.launchAngle = parseFloat(angle.toFixed(1));
+        // ❌ حذفنا: if (force !== undefined) this.parameters.pushForce = ...
+        // ❌ حذفنا: if (angle !== undefined) this.parameters.launchAngle = ...
     }
 
     // ─────────────────────────────────────────────────────────
@@ -159,9 +162,11 @@ sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
     // تنفيذ الإطلاق
     // ─────────────────────────────────────────────────────────
     _executeLaunch() {
+        this.parameters.yStart = Math.max(
+            this.parameters.yStart,
+            2.7 * (this.parameters.ballRadius / 1.1)
+        );
 
-        this.parameters.yStart = Math.max(this.parameters.yStart, 2.7 * (this.parameters.ballRadius / 1.1));
-        // التحقق من وجود الكرة قبل الإطلاق
         if (!this.ball) {
             console.warn('⚠️ لم يتم ربط الكرة بعد. ادخل وضع التصويب (ENTER) أولاً.');
             return;
@@ -173,14 +178,19 @@ sandbox.add(this.parameters, 'ballRadius', 0.5, 1.5)
         }
 
         this._launchController.disable();
-        console.log('📊 إعدادات الإطلاق:', { ...this.parameters, launch: '[fn]' });
 
-        // تمرير نسخة من الإعدادات لمنع التعديل بعد الإطلاق
+        const finalSettings = JSON.parse(JSON.stringify({
+            ...this.parameters,
+            launch   : '[fn]',
+            resetPins: '[fn]'
+        }));
+        console.log('📊 إعدادات الإطلاق:', finalSettings);
+        console.log('🚀 القوة المرسلة للفيزياء:', finalSettings.pushForce, 'N | الزاوية:', finalSettings.launchAngle, '°');
+
         if (this.onLaunch) {
             this.onLaunch({ ...this.parameters });
         }
 
-        // إعادة تفعيل الزر بعد انتهاء المحاكاة (20 ثانية كحد أقصى)
         const reEnable = () => {
             if (!this.isLaunched) {
                 this._launchController.enable();

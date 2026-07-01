@@ -10,6 +10,7 @@ export default {
   // بتنحسب هون كل قيم البداية للرمية: السرعة الابتدائية v0، السرعة
   // الزاوية حسب الـ RPM، ومواقع الكرة والدبابيس الفعلية بوحدات الفيزياء
   initializeSimulation(settings, _ballMesh, _pinsMeshes) {
+    console.log("Settings received in Physics:", settings.pushForce, settings.ballRadius);
     this.settings = settings;
     this.accumulator = 0.0;
     this.pinsBodies = [];
@@ -54,9 +55,10 @@ export default {
     const delta_t = 0.05;
 
     const v0 = Math.sqrt((2 * Ek) / mass) + (force * delta_t) / mass;
+    console.log("القوة المطبقة:", settings.pushForce, "السرعة النهائية v0:", v0.toFixed(2));
     const vx = v0 * Math.sin(angle);
     const vz = -v0 * Math.cos(angle);
-
+console.log("Initial Velocity:", vx, vz);
     // خصم الإزاحة الرسومية عشان الفيزياء تبلش من النقطة الصحيحة
     const physicsVisualY = this.ballMesh.position.y - this.visualRadiusOffset;
 

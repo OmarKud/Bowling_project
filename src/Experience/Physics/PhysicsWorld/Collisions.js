@@ -116,6 +116,7 @@ export default {
         }
 
         this._separateBodies(bodyA, bodyB, normal, minDist - dist);
+        console.log(`Impulse Magnitude: ${j.toFixed(2)} | Pin Falling: ${bodyB.isFallen}`);
     },
 
     // فصل الجسمين عن بعض بعد التصادم عشان ما يضلوا متداخلين فيزيائيًا

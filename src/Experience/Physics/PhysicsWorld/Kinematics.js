@@ -31,7 +31,6 @@ export default {
     _getLaneIndexFromX(x) {
         let bestIndex = 0;
         let bestDistance = Infinity;
-
         this.LANE_CENTERS_PHYS.forEach((center, index) => {
             const distance = Math.abs(x - center);
             if (distance < bestDistance) {
@@ -39,40 +38,38 @@ export default {
                 bestIndex = index;
             }
         });
-
         return bestIndex;
     },
 
-    // فحص هل الكرة تجاوزت حدود مسارها الأصلي وصارت بالحفرة.
-    // مبني بس على مسار البداية، وما بيتأثر بأي انحراف لاحق
+    // ─────────────────────────────────────────────────────────
+    // الإصلاح #4: أضفنا GUTTER_ENTRY_BUFFER (0.02م) عشان الكرة
+    // ما تنقفل بالحفرة فوراً عند أول لمسة للحافة، فتعطي فرصة لـ
+    // _computeGutterForce تردها للمسار قبل ما تقفل الحالة.
+    // قبلاً كانت العتبة = laneLeft بالضبط، فكانت الدالتان تتعارضان:
+    // _computeGutterForce تحاول الرد ← _checkGutterEntry تقفل الحفرة
+    // ← _computeGutterForce ترجع صفر لأن _gutterAlerted=true ← الكرة
+    // تنشفط للداخل بدون مقاومة.
+    // ─────────────────────────────────────────────────────────
     _checkGutterEntry(ballX) {
-        if (this._gutterAlerted) return; // الحالة مقفولة من قبل
+        if (this._gutterAlerted) return;
 
         const lane = this._getStartLane();
-
-        // شرط بسيط (0.1 م) عشان نتأكد إنه الكرة فعلاً انطلقت ومش لسا
-        // بإيد اللاعب قبل الرمي
         const pastStart = this.ballBody.position.z < this._ballPhysicsOrigin.z - 0.1;
         if (!pastStart) return;
 
-        // أي إحداثي خارج عرض الخشب يعتبر سقوط فوري بالحفرة
-        const inLeftGutter  = ballX < lane.laneLeft;
-        const inRightGutter = ballX > lane.laneRight;
+        // الإصلاح: بافر 0.02م قبل ما نقفل حالة الحفرة
+        const GUTTER_ENTRY_BUFFER = 0.02;
+        const inLeftGutter  = ballX < lane.laneLeft  - GUTTER_ENTRY_BUFFER;
+        const inRightGutter = ballX > lane.laneRight + GUTTER_ENTRY_BUFFER;
 
         if (inLeftGutter || inRightGutter) {
             this._gutterAlerted      = true;
             this._gutterLockedX      = ballX;
-            // أرضية الحفرة نسبة لسطح المسار الحقيقي ناقص عمقها
             this._gutterLockedFloorY = this.LANE_SURFACE_OFFSET - this.GUTTER_DEPTH_PHYS;
-
             console.log(`Gutter Ball - x=${ballX.toFixed(3)} side=${inLeftGutter ? 'LEFT' : 'RIGHT'}`);
-
-            // تنبيه فوري على الشاشة لكل رمية تطيح بالحفرة
-           // window.alert(`الكرة طاحت بالحفرة! (${inLeftGutter ? 'يسار' : 'يمين'} المسار)`);
         }
     },
 
-    // تطبيق قيود الحركة جوا الحفرة: انزلاق نحو القاع المقعر بدل ارتداد غريب
     _applyGutterConstraints(body) {
         const lane = this._getStartLane();
         const isLeftGutter = body.position.x < lane.center;
@@ -81,19 +78,16 @@ export default {
             ? lane.center - this.LANE_HALF_WIDTH - (this.GUTTER_WIDTH_PHYS / 2)
             : lane.center + this.LANE_HALF_WIDTH + (this.GUTTER_WIDTH_PHYS / 2);
 
-        // سحب الكرة بقوة لقاع الحفرة عشان ما تطلع عالجدار وتهرب
         const diffX = gutterCenter - body.position.x;
         body.velocity.x = diffX * 8.0;
         body.position.x += body.velocity.x * this.fixedDt;
 
-        // قفل أمني: يمنع رجوع الكرة للمسار أو القفز لمسار جنبي مهما زادت سرعتها
         if (isLeftGutter) {
             if (body.position.x > lane.laneLeft) body.position.x = lane.laneLeft - 0.01;
         } else {
             if (body.position.x < lane.laneRight) body.position.x = lane.laneRight + 0.01;
         }
 
-        // قفل المحور Y عند قاع الحفرة
         const floorY = this._gutterLockedFloorY + body.radius;
         if (body.position.y < floorY || body.velocity.y < 0) {
             body.position.y = floorY;
@@ -104,36 +98,33 @@ export default {
         body.velocity.z *= 0.999;
     },
 
-    // قوة صد عند حافة المسار الأصلي، وبتشتغل بس قبل ما الكرة تدخل الحفرة فعليًا
     _computeGutterForce(body) {
         const force = new THREE.Vector3(0, 0, 0);
-        if (this._gutterAlerted) return force; // بعد الدخول ما منضيف قوة إضافية
+        if (this._gutterAlerted) return force;
 
-        const lane  = this._getStartLane();
-        const bx    = body.position.x;
+        const lane = this._getStartLane();
+        const bx   = body.position.x;
 
-        // حافة يسار
         const dxLeft = bx - lane.laneLeft;
         if (dxLeft < 0 && dxLeft > -this.GUTTER_WIDTH_PHYS) {
-            const wallX   = lane.gutterLeft;
-            const distW   = bx - wallX;
-            const minCl   = this.CAPPING_RADIUS_PHYS + body.radius;
+            const wallX  = lane.gutterLeft;
+            const distW  = bx - wallX;
+            const minCl  = this.CAPPING_RADIUS_PHYS + body.radius;
             if (distW < minCl) {
-                const pen  = minCl - distW;
-                force.x   += pen * 120.0;
+                const pen = minCl - distW;
+                force.x  += pen * 120.0;
                 if (body.velocity.x < 0) body.velocity.x *= 0.05;
             }
         }
 
-        // حافة يمين
         const dxRight = lane.laneRight - bx;
         if (dxRight < 0 && dxRight > -this.GUTTER_WIDTH_PHYS) {
-            const wallX   = lane.gutterRight;
-            const distW   = wallX - bx;
-            const minCl   = this.CAPPING_RADIUS_PHYS + body.radius;
+            const wallX  = lane.gutterRight;
+            const distW  = wallX - bx;
+            const minCl  = this.CAPPING_RADIUS_PHYS + body.radius;
             if (distW < minCl) {
-                const pen  = minCl - distW;
-                force.x   -= pen * 120.0;
+                const pen = minCl - distW;
+                force.x  -= pen * 120.0;
                 if (body.velocity.x > 0) body.velocity.x *= 0.05;
             }
         }
@@ -141,8 +132,6 @@ export default {
         return force;
     },
 
-    // سرعة نقطة التماس اللحظية بين الكرة وأرضية المسار (vB)، أساس حساب
-    // الاحتكاك لأنه الاحتكاك بيعتمد على الانزلاق النسبي مو السرعة المطلقة
     _computeContactVelocity(body) {
         const r  = new THREE.Vector3(0, -body.radius, 0);
         const vB = body.velocity.clone().add(
@@ -152,14 +141,21 @@ export default {
         return vB;
     },
 
-    // معامل الاحتكاك حسب منطقة الزيت مقابل المنطقة الجافة عالمسار
     _getFriction(body) {
         const dz = Math.abs(body.position.z - this._ballPhysicsOrigin.z);
         return dz < this.settings.oilDistance ? this.settings.muOil : this.settings.muDry;
     },
 
-    // تجميع كل القوى المؤثرة (احتكاك، جاذبية، حواف المسار) وتحويلها
-    // لتسارع خطي وزاوي: a = F/m و alpha = tau/I
+    // ─────────────────────────────────────────────────────────
+    // الإصلاح #2: حذفنا angAcc.addScaledVector(angularVelocity, -DAMPING_K)
+    // لأنه كان يقتل السرعة الزاوية قبل ما تأثيرها يبين على مسار الكرة،
+    // وبقّينا التخميد الخطي بس (linAcc) بقيمة خفيفة (0.008).
+    //
+    // الإصلاح #3: أضفنا Hysteresis للانتقال بين حالة الانزلاق والتدحرج:
+    //   - دخول التدحرج النقي عند slipSpeed < 0.01 (بدل 0.005)
+    //   - الخروج منه عند slipSpeed > 0.02
+    // هيك ما في قفزة مفاجئة بالتسارع عند الحد، وRK4 يضل مستقر.
+    // ─────────────────────────────────────────────────────────
     _computeAccelerations(body) {
         const linAcc = new THREE.Vector3();
         const angAcc = new THREE.Vector3();
@@ -171,14 +167,11 @@ export default {
             return { linAcc, angAcc };
         }
 
-        // جوا الحفرة فقط التحكم على Z شغال (مطبق بـ _applyGutterConstraints)
         if (this._gutterAlerted) {
             return { linAcc, angAcc };
         }
 
-        const lane    = this._getStartLane();
-        // سطح المسار الحقيقي، مش صفر مطلق، عشان يطابق ارتفاع خشب المسار الفعلي
-        const floorY  = this.LANE_SURFACE_OFFSET;
+        const floorY   = this.LANE_SURFACE_OFFSET;
         const onGround = body.position.y <= floorY + body.radius + 0.001;
 
         if (!onGround) {
@@ -200,14 +193,20 @@ export default {
             const mu        = this._getFriction(body);
             const rVector   = new THREE.Vector3(0, -body.radius, 0);
 
-            if (slipSpeed > 0.005) {
-                // مرحلة الانزلاق والانحناء (Skid / Hook)
+            // ── الإصلاح #3: Hysteresis ──
+            // isRolling تُخزن على body عشان تضل ثابتة بين خطوات RK4
+            if (body._isRolling === undefined) body._isRolling = false;
+            if (!body._isRolling && slipSpeed < 0.01)  body._isRolling = true;
+            if ( body._isRolling && slipSpeed > 0.02)  body._isRolling = false;
+
+            if (!body._isRolling) {
+                // ── مرحلة الانزلاق (Sliding): احتكاك حركي ──
                 const fricForce = vB.clone().normalize().multiplyScalar(-mu * N);
                 linAcc.add(fricForce.clone().divideScalar(body.mass));
                 const torque = new THREE.Vector3().crossVectors(rVector, fricForce);
                 angAcc.add(torque.clone().divideScalar(body.inertia));
             } else {
-                // مرحلة التدحرج الصافي (Pure Rolling)
+                // ── مرحلة التدحرج النقي (Pure Rolling): احتكاك تدحرج خفيف ──
                 const mu_rolling    = 0.002;
                 const rollFricForce = body.velocity.clone().normalize()
                                          .multiplyScalar(-mu_rolling * N);
@@ -215,28 +214,24 @@ export default {
                 const torque = new THREE.Vector3().crossVectors(rVector, rollFricForce);
                 angAcc.add(torque.clone().divideScalar(body.inertia));
             }
+
+            console.log(`Angular Accel: ${angAcc.length().toFixed(4)} | Slip Speed: ${slipSpeed.toFixed(4)} | Rolling: ${body._isRolling}`);
         }
 
-        // تخميد عام مستمر (نقطة 1 بالوثيقة ص39): بالوثيقة مطبق كضرب مباشر
-        // velocity *= (1-0.01*dt) بكل استدعاء، بغض النظر عن حالة الانزلاق.
-        // هون منطبقه كقوة تناسبية مستمرة a = -k*v بدل لمس body.velocity
-        // مباشرة، لأنه هاي الدالة بتتنادى 4 مرات بكل خطوة RK4 على حالات
-        // وسيطة مختلفة (b2,b3,b4)، ولو عدّلنا body.velocity هون كان رح
-        // يكسر منطق التكامل. الصيغتين متكافئتين تقريبًا لما dt صغير، وهاد
-        // التخميد هو يلي رح يخفف انجراف السرعة الجانبية المتراكم بمنطقة
-        // الزيت يلي حكينا عنها قبل.
-        const DAMPING_K = 0.01;
+        // ── الإصلاح #2: تخميد خطي خفيف فقط (بدون تخميد زاوي) ──
+        // التخميد الخطي يعوّض الاحتكاك الهوائي الخفيف، بدون ما يقتل
+        // تأثير الدوران (angularVelocity) على مسار الكرة
+        const DAMPING_K = 0.008;
         linAcc.addScaledVector(body.velocity, -DAMPING_K);
-        angAcc.addScaledVector(body.angularVelocity, -DAMPING_K);
+        // ❌ حذفنا: angAcc.addScaledVector(body.angularVelocity, -DAMPING_K)
 
         const gutterForce = this._computeGutterForce(body);
         linAcc.x += gutterForce.x / body.mass;
 
+        console.log(`Speed: ${body.velocity.length().toFixed(2)} | Accel: ${linAcc.length().toFixed(4)}`);
         return { linAcc, angAcc };
     },
 
-    // تكامل رونج-كوتا من الدرجة الرابعة (RK4) لحركة الكرة، أدق بكثير
-    // من أويلر العادي خصوصًا مع قوى متغيرة متل الاحتكاك
     _integrateRK4(body, dt) {
         const { linAcc: a1, angAcc: aa1 } = this._computeAccelerations(body);
         const k1v = body.velocity.clone();
