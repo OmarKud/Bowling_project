@@ -201,6 +201,9 @@ export default {
   // بناء نص التنبيه المنبثق حسب نتيجة الرمية، بنفس منطق الحالات
   // المعروضة عالشاشة بالقاعة (BowlingScreens.showResultForLane)
   _buildResultAlertMessage({ newlyFallen, totalFallen, isGutterBall }) {
+     if (isGutterBall==true && totalFallen === 0) {
+      return "no pins fell yet. Something went wrong.";
+    }
     if (isGutterBall && totalFallen === 0) {
       return "الكرة طاحت بالحفرة ولم يسقط أي دبوس";
     }

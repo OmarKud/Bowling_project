@@ -55,6 +55,11 @@ export default {
         const pastStart = this.ballBody.position.z < this._ballPhysicsOrigin.z - 0.1;
         if (!pastStart) return;
 
+        // نوقف كشف الحفرة بمجرد ما تصل الكرة لمنطقة البينز (startZ=-234 وحدة مشهد
+        // = -11.7 وحدة فيزياء). أي انحراف بعد هاي المنطقة مش حفرة بالمعنى الحقيقي
+        const PIN_ZONE_Z = -200 / this.SCALE; // ≈ -11.7
+        if (this.ballBody.position.z < PIN_ZONE_Z) return;
+
         // أي إحداثي خارج عرض الخشب يعتبر سقوط فوري بالحفرة
         const inLeftGutter  = ballX < lane.laneLeft;
         const inRightGutter = ballX > lane.laneRight;
@@ -68,7 +73,7 @@ export default {
             console.log(`Gutter Ball - x=${ballX.toFixed(3)} side=${inLeftGutter ? 'LEFT' : 'RIGHT'}`);
 
             // تنبيه فوري على الشاشة لكل رمية تطيح بالحفرة
-           // window.alert(`الكرة طاحت بالحفرة! (${inLeftGutter ? 'يسار' : 'يمين'} المسار)`);
+            window.alert(`الكرة طاحت بالحفرة! (${inLeftGutter ? 'يسار' : 'يمين'} المسار)`);
         }
     },
 
@@ -108,7 +113,8 @@ export default {
     _computeGutterForce(body) {
         const force = new THREE.Vector3(0, 0, 0);
         if (this._gutterAlerted) return force; // بعد الدخول ما منضيف قوة إضافية
-
+const PIN_ZONE_Z = -234 / this.SCALE;
+    if (body.position.z < PIN_ZONE_Z) return force;
         const lane  = this._getStartLane();
         const bx    = body.position.x;
 
@@ -216,18 +222,6 @@ export default {
                 angAcc.add(torque.clone().divideScalar(body.inertia));
             }
         }
-
-        // تخميد عام مستمر (نقطة 1 بالوثيقة ص39): بالوثيقة مطبق كضرب مباشر
-        // velocity *= (1-0.01*dt) بكل استدعاء، بغض النظر عن حالة الانزلاق.
-        // هون منطبقه كقوة تناسبية مستمرة a = -k*v بدل لمس body.velocity
-        // مباشرة، لأنه هاي الدالة بتتنادى 4 مرات بكل خطوة RK4 على حالات
-        // وسيطة مختلفة (b2,b3,b4)، ولو عدّلنا body.velocity هون كان رح
-        // يكسر منطق التكامل. الصيغتين متكافئتين تقريبًا لما dt صغير، وهاد
-        // التخميد هو يلي رح يخفف انجراف السرعة الجانبية المتراكم بمنطقة
-        // الزيت يلي حكينا عنها قبل.
-        const DAMPING_K = 0.01;
-        linAcc.addScaledVector(body.velocity, -DAMPING_K);
-        angAcc.addScaledVector(body.angularVelocity, -DAMPING_K);
 
         const gutterForce = this._computeGutterForce(body);
         linAcc.x += gutterForce.x / body.mass;
