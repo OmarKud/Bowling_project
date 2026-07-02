@@ -1,68 +1,62 @@
 import * as THREE from 'three';
-import Sizes from './Utils/Sizes.js';
-import Time from './Utils/Time.js';
-import Camera from './Camera.js';
-import Renderer from './Renderer.js';
-import World from './World/World.js';
-import PhysicsWorld from './Physics/PhysicsWorld.js';
-import PhysicsEngine from './Physics/PhysicsEngine.js';
-import InputPanel from './Physics/InputPanel.js';
+import Sizes       from './Utils/Sizes.js';
+import Time        from './Utils/Time.js';
+import Camera      from './Camera.js';
+import Renderer    from './Renderer.js';
+import World       from './World/World.js';
+ import PhysicsWorld from './Physics/PhysicsWorld/index.js';
+ import PhysicsEngine from './Physics/PhysicsEngine.js';
+import InputPanel    from './Physics/InputPanel.js';
 
 let instance = null;
 
 export default class Experience {
     constructor(canvas) {
-        if (instance) {
-            return instance;
-        }
+        if (instance) return instance;
         instance = this;
-
         window.experience = this;
 
-        this.canvas = canvas;
-        this.sizes = new Sizes();
-        this.time = new Time();
-        this.scene = new THREE.Scene();
-        this.camera = new Camera();
-        this.physic = new PhysicsWorld();
+        this.canvas   = canvas;
+        this.sizes    = new Sizes();
+        this.time     = new Time();
+        this.scene    = new THREE.Scene();
+        this.camera   = new Camera();
+        // Main physics engine
+        this.physicsWorld  = new PhysicsWorld();
         this.renderer = new Renderer();
-        this.world = new World();
-        this.physics = new PhysicsEngine();
+        this.world    = new World();
 
-        this.sizes.on(() => {
-            this.resize();
-        });
+        // Camera bounds monitor
+        this.physicsEngine = new PhysicsEngine();
 
-        this.time.on(() => {
-            this.update();
-        });
-        
+        // Input panel – triggers launch callback
         this.inputPanel = new InputPanel((settings) => {
-            if (this.world && this.world.ball) {
-                this.physic.balls = [this.world.ball];
+            const pins = this.world?.hall?.pins?.pinsArray ?? [];
+            if (pins.length === 0) {
+                console.warn('Pins not loaded yet. Try again.');
+                setTimeout(() => { this.inputPanel.isLaunched = false; }, 500);
+                return;
             }
-            if (this.world && this.world.hall && this.world.hall.pins) {
-                this.physic.pins = this.world.hall.pins.pinsArray;
-            }
-            if (typeof this.physic.initializeSimulation === 'function') {
-                this.physic.initializeSimulation(settings);
-            }
+            this.physicsWorld.initializeSimulation(settings, null, pins);
         });
+        this.sizes.on(() => this._resize());
+        this.time.on(()  => this._update());
     }
 
-    resize() {
+    _resize() {
         this.camera.resize();
         this.renderer.resize();
     }
 
-    update() {
+    _update() {
+        const dt = this.time.delta * 0.001; // ms → s
         this.camera.update();
-       
         this.world.update();
-        this.renderer.update();
-        // في Experience.js داخل دالة update()
- if (this.inputPanel && this.inputPanel.isLaunched) {
-            this.physic.update(this.time.deltaTime * 0.001);
+        this.physicsEngine.update();
+    // Run physics only while the ball is in flight
+        if (this.inputPanel?.isLaunched) {
+            this.physicsWorld.update(dt);
         }
+        this.renderer.update();
     }
 }
