@@ -57,8 +57,7 @@ export default {
 
         // نوقف كشف الحفرة بمجرد ما تصل الكرة لمنطقة البينز (startZ=-234 وحدة مشهد
         // = -11.7 وحدة فيزياء). أي انحراف بعد هاي المنطقة مش حفرة بالمعنى الحقيقي
-        const PIN_ZONE_Z = -200 / this.SCALE; // ≈ -11.7
-        if (this.ballBody.position.z < PIN_ZONE_Z) return;
+const PIN_ZONE_Z = -234 / this.SCALE; // ≈ -11.7        if (this.ballBody.position.z < PIN_ZONE_Z) return;
 
         // أي إحداثي خارج عرض الخشب يعتبر سقوط فوري بالحفرة
         const inLeftGutter  = ballX < lane.laneLeft;
@@ -108,44 +107,49 @@ export default {
         body.angularVelocity.set(0, 0, 0);
         body.velocity.z *= 0.999;
     },
-
+_computeGutterForce(body) {
+    // محذوفة بالكامل: ما في حيط وهمي يصدم الكرة على حواف المسار.
+    // الكرة حرة تمامًا، والكشف عن الوقوع بالحفرة صار مسؤولية
+    // _checkGutterEntry فقط.
+    return new THREE.Vector3(0, 0, 0);
+},
     // قوة صد عند حافة المسار الأصلي، وبتشتغل بس قبل ما الكرة تدخل الحفرة فعليًا
-    _computeGutterForce(body) {
-        const force = new THREE.Vector3(0, 0, 0);
-        if (this._gutterAlerted) return force; // بعد الدخول ما منضيف قوة إضافية
-const PIN_ZONE_Z = -234 / this.SCALE;
-    if (body.position.z < PIN_ZONE_Z) return force;
-        const lane  = this._getStartLane();
-        const bx    = body.position.x;
+//     _computeGutterForce(body) {
+//         const force = new THREE.Vector3(0, 0, 0);
+//         if (this._gutterAlerted) return force; // بعد الدخول ما منضيف قوة إضافية
+// const PIN_ZONE_Z = -234 / this.SCALE;
+//     if (body.position.z < PIN_ZONE_Z) return force;
+//         const lane  = this._getStartLane();
+//         const bx    = body.position.x;
 
-        // حافة يسار
-        const dxLeft = bx - lane.laneLeft;
-        if (dxLeft < 0 && dxLeft > -this.GUTTER_WIDTH_PHYS) {
-            const wallX   = lane.gutterLeft;
-            const distW   = bx - wallX;
-            const minCl   = this.CAPPING_RADIUS_PHYS + body.radius;
-            if (distW < minCl) {
-                const pen  = minCl - distW;
-                force.x   += pen * 120.0;
-                if (body.velocity.x < 0) body.velocity.x *= 0.05;
-            }
-        }
+//         // حافة يسار
+//         const dxLeft = bx - lane.laneLeft;
+//         if (dxLeft < 0 && dxLeft > -this.GUTTER_WIDTH_PHYS) {
+//             const wallX   = lane.gutterLeft;
+//             const distW   = bx - wallX;
+//             const minCl   = this.CAPPING_RADIUS_PHYS + body.radius;
+//             if (distW < minCl) {
+//                 const pen  = minCl - distW;
+//                 force.x   += pen * 120.0;
+//                 if (body.velocity.x < 0) body.velocity.x *= 0.05;
+//             }
+//         }
 
-        // حافة يمين
-        const dxRight = lane.laneRight - bx;
-        if (dxRight < 0 && dxRight > -this.GUTTER_WIDTH_PHYS) {
-            const wallX   = lane.gutterRight;
-            const distW   = wallX - bx;
-            const minCl   = this.CAPPING_RADIUS_PHYS + body.radius;
-            if (distW < minCl) {
-                const pen  = minCl - distW;
-                force.x   -= pen * 120.0;
-                if (body.velocity.x > 0) body.velocity.x *= 0.05;
-            }
-        }
+//         // حافة يمين
+//         const dxRight = lane.laneRight - bx;
+//         if (dxRight < 0 && dxRight > -this.GUTTER_WIDTH_PHYS) {
+//             const wallX   = lane.gutterRight;
+//             const distW   = wallX - bx;
+//             const minCl   = this.CAPPING_RADIUS_PHYS + body.radius;
+//             if (distW < minCl) {
+//                 const pen  = minCl - distW;
+//                 force.x   -= pen * 120.0;
+//                 if (body.velocity.x > 0) body.velocity.x *= 0.05;
+//             }
+//         }
 
-        return force;
-    },
+//         return force;
+//     },
 
     // سرعة نقطة التماس اللحظية بين الكرة وأرضية المسار (vB)، أساس حساب
     // الاحتكاك لأنه الاحتكاك بيعتمد على الانزلاق النسبي مو السرعة المطلقة
