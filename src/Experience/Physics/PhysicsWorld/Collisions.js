@@ -38,8 +38,9 @@ export default {
     // حل التصادم بين جسمين (كرة-دبوس أو دبوس-دبوس) عن طريق حفظ الزخم
     // الخطي ومعامل الارتداد e. منطبق على المستوى الأفقي بس (X,Z) لأنه
     // التصادم الرأسي بيتعالج بشكل منفصل بـ _resolveGround
-    _resolveCollision(bodyA, bodyB) {
+  _resolveCollision(bodyA, bodyB) {
         if (bodyA.isSleeping && bodyB.isSleeping) return;
+        if (bodyA.isFallen && bodyB.isFallen) return;
         if ((bodyA.isFallen && !bodyB.isPin) || (bodyB.isFallen && !bodyA.isPin)) return;
 
         const diffFlat = new THREE.Vector3(
@@ -47,68 +48,52 @@ export default {
             0,
             bodyB.position.z - bodyA.position.z
         );
-        const dist    = diffFlat.length();
+        const dist = diffFlat.length();
         const minDist = bodyA.radius + bodyB.radius;
         if (dist >= minDist || dist < 0.0001) return;
 
         const normal = diffFlat.clone().divideScalar(dist);
-        const vRel   = new THREE.Vector3().subVectors(bodyB.velocity, bodyA.velocity);
-        const vRelN  = vRel.dot(normal);
+        const vRel = new THREE.Vector3().subVectors(bodyB.velocity, bodyA.velocity);
+        const vRelN = vRel.dot(normal);
         if (vRelN >= 0) { this._separateBodies(bodyA, bodyB, normal, minDist - dist); return; }
 
         bodyA.isSleeping = false;
         bodyB.isSleeping = false;
 
-        const e          = Math.min(bodyA.restitution, bodyB.restitution);
-        const invMassA   = 1.0 / (bodyA.isPin ? bodyA.mass * 1.2 : bodyA.mass);
-        const invMassB   = 1.0 / (bodyB.isPin ? bodyB.mass * 1.2 : bodyB.mass);
-        const j          = -(1.0 + e) * vRelN / (invMassA + invMassB);
-        const impulse    = normal.clone().multiplyScalar(j);
+        // 🌟 السر الفيزيائي للدومينو: الدبابيس تضرب بعضها بارتداد أعلى (0.75) كحقيقة الخشب
+        let e = Math.min(bodyA.restitution, bodyB.restitution);
+        if (bodyA.isPin && bodyB.isPin) {
+            e = 0.75; 
+        }
 
-        // الكرة بتتأثر أقل بكثير من اصطدامها بدبوس (وزنها أكبر بكثير)،
-        // فمنخفف تأثير الدفعة عليها مقارنة بالدبوس
-        if (!bodyA.isPin) bodyA.velocity.addScaledVector(impulse, -invMassA * 0.1);
-        else              bodyA.velocity.addScaledVector(impulse, -invMassA);
+        const invMassA = 1.0 / bodyA.mass;
+        const invMassB = 1.0 / bodyB.mass;
+        const j = -(1.0 + e) * vRelN / (invMassA + invMassB);
+        const impulse = normal.clone().multiplyScalar(j);
+
+        // تطبيق الزخم الخطي
+        bodyA.velocity.addScaledVector(impulse, -invMassA);
         bodyB.velocity.addScaledVector(impulse, invMassB);
 
-        // نقل الزخم الزاوي الحقيقي (مطابق لمعادلة الوثيقة ص45:
-        // angularVelocity += cross(r, impulse) / inertia). بما إنه الـ
-        // impulse عنّا أفقي بالكامل (X,Z)، لازم نستخدم فرق الارتفاع
-        // الفعلي بين مركزي الكرة والدبوس كمتجه ذراع عمودي (rB.y) عشان
-        // نولّد عزم دوران حقيقي حول محور أفقي (الميلان/السقوط)، مو بس
-        // دوران حول المحور الرأسي. هيك الدبوس فعلياً بيدور وينقلب لما
-        // ينضرب، مو بس يتحرك بخط مستقيم وتأثيره الدوراني وهمي كل الوقت.
+        // تطبيق الزخم الزاوي للدبابيس لكي تنقلب
         if (bodyB.isPin) {
-            const rB = new THREE.Vector3(
-                normal.x * bodyB.radius,
-                bodyA.position.y - bodyB.position.y,
-                normal.z * bodyB.radius
-            );
+            const rB = new THREE.Vector3(normal.x * bodyB.radius, bodyA.position.y - bodyB.position.y, normal.z * bodyB.radius);
             const angImpulseB = new THREE.Vector3().crossVectors(rB, impulse);
-            bodyB.angularVelocity.addScaledVector(angImpulseB, invMassB > 0 ? 1.0 / bodyB.inertia : 0);
+            bodyB.angularVelocity.addScaledVector(angImpulseB, 1.0 / bodyB.inertia);
         }
         if (bodyA.isPin) {
-            const rA = new THREE.Vector3(
-                -normal.x * bodyA.radius,
-                bodyB.position.y - bodyA.position.y,
-                -normal.z * bodyA.radius
-            );
+            const rA = new THREE.Vector3(-normal.x * bodyA.radius, bodyB.position.y - bodyA.position.y, -normal.z * bodyA.radius);
             const angImpulseA = new THREE.Vector3().crossVectors(rA, impulse).multiplyScalar(-1);
             bodyA.angularVelocity.addScaledVector(angImpulseA, 1.0 / bodyA.inertia);
         }
 
-        // الدبوس بيعتبر واقع إذا الدفعة يلي أخدها كانت أكبر من عتبة معينة.
-        // أول لحظة يتحول فيها الدبوس لحالة "واقع" منحسب محور سقوطه
-        // (fallAxis) بناءً على اتجاه الدفعة الفعلية (normal) يلي ضربته،
-        // عشان يطيح بنفس اتجاه الصدمة (يمين/شمال/قدام) مو دايماً لورا.
-        // منحسبها مرة وحدة بس (لما isFallen تتحول false->true) عشان ما
-        // تتغير وتسبب اهتزاز بصري لو انضرب الدبوس أكتر من مرة وهو واقع.
-        if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > (bodyA.isPin ? 1.2 : 0.3)) {
+        // 🌟 عتبة السقوط (Fall Threshold): جعلناها 0.5 لتكون الدبابيس حساسة وتتأثر بالدومينو
+        if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > 0.5) {
             bodyB.isFallen = true;
             bodyB.fallAxis = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal).normalize();
             if (bodyB.fallAxis.lengthSq() < 0.0001) bodyB.fallAxis.set(1, 0, 0);
         }
-        if (bodyA.isPin && !bodyA.isFallen && Math.abs(j * invMassA) > (bodyB.isPin ? 1.2 : 0.3)) {
+        if (bodyA.isPin && !bodyA.isFallen && Math.abs(j * invMassA) > 0.5) {
             bodyA.isFallen = true;
             const normalA = normal.clone().multiplyScalar(-1);
             bodyA.fallAxis = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normalA).normalize();
