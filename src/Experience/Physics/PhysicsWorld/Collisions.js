@@ -2,13 +2,12 @@
 import * as THREE from "three";
 
 export default {
-  _integratePin(pin, dt) {
+ _integratePin(pin, dt) {
     if (pin.isSleeping) return;
     pin.velocity.y += this.gravity * dt;
- // normalize to default mass
-pin.velocity.x *= 0.92;
-pin.velocity.z *= 0.92;
-
+    // normalize to default mass
+    pin.velocity.x *= 0.92;
+    pin.velocity.z *= 0.92;
 
     if (pin.velocity.length() > 15.0) pin.velocity.setLength(15.0);
     pin.position.addScaledVector(pin.velocity, dt);
@@ -19,14 +18,12 @@ pin.velocity.z *= 0.92;
         pin.velocity.y = -pin.velocity.y * pin.restitution * 0.3;
     }
 
-    // Visual spin from angular velocity (only while standing).
     if (pin.meshRef && !pin.isFallen) {
       pin.meshRef.rotation.x += pin.angularVelocity.x * dt;
       pin.meshRef.rotation.y += pin.angularVelocity.y * dt;
       pin.meshRef.rotation.z += pin.angularVelocity.z * dt;
     }
-  },
-
+},
   // Impulse-based collision (ball-pin & pin-pin). Conserves momentum.
   _resolveCollision(bodyA, bodyB) {
     if (bodyA.isSleeping && bodyB.isSleeping) return;
@@ -87,7 +84,7 @@ pin.velocity.z *= 0.92;
       bodyA.angularVelocity.addScaledVector(angImpulseA, 1.0 / bodyA.inertia);
     }
 
-    // Fall threshold (0.5) - pins are sensitive to domino hits.
+    // Fall threshold (0.5 m/s of Δv) - mass-independent by design.
     if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > 0.5) {
       bodyB.isFallen = true;
       bodyB.fallAxis = new THREE.Vector3()
@@ -118,10 +115,8 @@ pin.velocity.z *= 0.92;
   _resolveGround(body) {
     if (this._gutterAlerted) return;
 
-    // Match the actual lane surface. Prevents jitter between onGround states.
     const floorY = body.radius + this.LANE_SURFACE_OFFSET;
 
-    // Start tracking if ball is airborne.
     if (body.position.y > floorY + 0.001) {
       if (!this._isFalling) {
         this._isFalling = true;
@@ -146,7 +141,6 @@ pin.velocity.z *= 0.92;
         }
         this._isFalling = false;
       } else if (body.velocity.y < 0) {
-        // Soft damping for small bounces.
         body.velocity.y = -body.velocity.y * body.restitution * 0.1;
       }
       body.position.y = floorY;
