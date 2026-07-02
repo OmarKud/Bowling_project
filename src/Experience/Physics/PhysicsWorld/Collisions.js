@@ -5,10 +5,9 @@ export default {
   _integratePin(pin, dt) {
     if (pin.isSleeping) return;
     pin.velocity.y += this.gravity * dt;
-const dampingFactor = 0.92; // per physics model
-const massNormalization = 1.5 / pin.mass; // normalize to default mass
-pin.velocity.x *= Math.pow(dampingFactor, massNormalization);
-pin.velocity.z *= Math.pow(dampingFactor, massNormalization);
+ // normalize to default mass
+pin.velocity.x *= 0.92;
+pin.velocity.z *= 0.92;
 
 
     if (pin.velocity.length() > 15.0) pin.velocity.setLength(15.0);

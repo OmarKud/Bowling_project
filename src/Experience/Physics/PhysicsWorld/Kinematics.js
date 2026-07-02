@@ -157,8 +157,8 @@ export default {
 
 if (body.isPin) {
   linAcc.y = this.gravity;
-  linAcc.x = -(body.velocity.x * 2.0) / body.mass;
-  linAcc.z = -(body.velocity.z * 2.0) / body.mass;
+  linAcc.x = -(body.velocity.x * 2.0) ;
+  linAcc.z = -(body.velocity.z * 2.0);
   return { linAcc, angAcc };
 }
     if (this._gutterAlerted) {
