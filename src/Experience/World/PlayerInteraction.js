@@ -15,13 +15,9 @@ export default class PlayerInteraction {
         this.state            = 'FREE_ROAM';
         this.heldBall         = null;
         this.currentLaunchAngle = 0;
-
-        // المسار الثالث من اليمين:
-        // المسارات عند X: -80, -48, -16, 16, 48, 80 (6 مسارات، laneComponentWidth=32)
-        // من اليمين: 80(1st), 48(2nd), 16(3rd) ← هذا هو المسار المستهدف
+        // Target lane (third from right, X=16)
         this.targetLaneX = 16;
-
-        // سهم التصويب
+        // Aiming arrow
         this.aimArrow = new THREE.ArrowHelper(
             new THREE.Vector3(0, 0, -1),
             new THREE.Vector3(0, 0, 0),
@@ -35,7 +31,6 @@ export default class PlayerInteraction {
         this._setKeyboardListener();
     }
 
-    // ─────────────────────────────────────────────────────────
     _setKeyboardListener() {
         window.addEventListener('keydown', (event) => {
             const key = event.key.toLowerCase();
@@ -100,7 +95,6 @@ export default class PlayerInteraction {
         }
     }
 
-    // ─────────────────────────────────────────────────────────
     dropBall() {
         this.state = 'FREE_ROAM';
         this.camera.instance.remove(this.heldBall);
@@ -117,23 +111,16 @@ export default class PlayerInteraction {
     // ─────────────────────────────────────────────────────────
     enterAimingMode() {
         this.state = 'AIMING';
-
-        // فصل الكرة عن الكاميرا ووضعها في المشهد
         this.camera.instance.remove(this.heldBall);
         this.scene.add(this.heldBall);
-
-        // إعادة ضبط دوران الكاميرا
         this.camera.rotation.set(0, 0, 0);
         this.camera.instance.quaternion.setFromEuler(this.camera.rotation);
-
-        // وضع اللاعب خلف الكرة قليلاً (Z=130 بدلاً من 120 لرؤية أفضل)
         this.camera.instance.position.set(this.targetLaneX - 6, 15, 130);
         this.heldBall.position.set(this.targetLaneX, 2.5, 110);
-
         this.currentLaunchAngle = 0;
         this.scene.add(this.aimArrow);
 
-        // ربط الكرة بالبانل
+
         if (this.experience.inputPanel) {
             this.experience.inputPanel.setBall(this.heldBall);
             this.experience.inputPanel.parameters.xStart    = this.targetLaneX;
@@ -165,10 +152,8 @@ export default class PlayerInteraction {
             this.heldBall.position.z
         );
 
-        // اتجاه السهم لازم يطابق بالضبط معادلة سرعة الكرة الفعلية عند
-        // الإطلاق (vx = sin(angle), vz = -cos(angle))، بدل ما نعتمد على
-        // applyAxisAngle حول yAxis لأنها بتعطي إشارة X معاكسة لمعادلة
-        // الفيزياء وهيك كان السهم يأشر بعكس جهة حركة الكرة فعليًا
+        // Direction must match the ball's actual velocity direction on launch:
+        // vx = sin(angle), vz = -cos(angle)
         const rad = THREE.MathUtils.degToRad(this.currentLaunchAngle);
         this.direction.set(Math.sin(rad), 0, -Math.cos(rad));
         this.aimArrow.setDirection(this.direction);
@@ -189,17 +174,13 @@ export default class PlayerInteraction {
         }
     }
 
-    // ─────────────────────────────────────────────────────────
-    // حساب القوة من موقع Z (130 → 50N، 150 → 600N)
+    // Map camera Z position to push force (130→50N, 150→600N)
     _calcForceFromZ(z) {
         return 50 + ((z - 130) / 20) * 550;
     }
 
-    // ─────────────────────────────────────────────────────────
     update() {
         if (this.state !== 'AIMING' || !this.heldBall) return;
-
-        // إذا أُطلقت الكرة، أوقف تحديث اللاعب وأخفِ السهم
         if (this.experience.inputPanel?.isLaunched) {
             if (this.aimArrow.parent) this.scene.remove(this.aimArrow);
             return;
@@ -207,19 +188,19 @@ export default class PlayerInteraction {
 
         const speed = 0.5;
 
-        // تحريك اللاعب
+        // Move player
         if (this.camera.keys.right)    this.camera.instance.position.x += speed;
         if (this.camera.keys.left)     this.camera.instance.position.x -= speed;
         if (this.camera.keys.forward)  this.camera.instance.position.z -= speed;
         if (this.camera.keys.backward) this.camera.instance.position.z += speed;
 
-        // تعديل زاوية التصويب (Q/E)
+        // Adjust launch angle (Q/E)
         const angleSpeed = 0.25;
         if (this.keys.q) this.currentLaunchAngle -= angleSpeed;
         if (this.keys.e) this.currentLaunchAngle += angleSpeed;
         this.currentLaunchAngle = Math.max(-45, Math.min(45, this.currentLaunchAngle));
 
-        // قيود الحركة — ابقَ على المسار
+        // Clamp movement to stay on lane
         this.camera.instance.position.x = Math.max(
             this.targetLaneX - 12,
             Math.min(this.targetLaneX +13, this.camera.instance.position.x)
@@ -227,21 +208,16 @@ export default class PlayerInteraction {
         this.camera.instance.position.z = Math.max(130, Math.min(150, this.camera.instance.position.z));
         this.camera.instance.position.y = 15;
 
-        // تحديث موقع الكرة
+        // Update ball position
         this.heldBall.position.x = this.camera.instance.position.x;
         this.heldBall.position.z = this.camera.instance.position.z - 20;
-        // Y يبقى كما هو (يتحكم فيه R/F)
 
-        // تحديث السهم
+        // Update arrow
         this.aimArrow.position.set(
             this.heldBall.position.x,
             this.heldBall.position.y + 2,
             this.heldBall.position.z
         );
-        // اتجاه السهم لازم يطابق بالضبط معادلة سرعة الكرة الفعلية عند
-        // الإطلاق (vx = sin(angle), vz = -cos(angle))، نفس المنطق
-        // المستخدم بـ restoreAimArrow عشان السهم دايمًا يأشر بنفس
-        // جهة حركة الكرة الحقيقية
         this.direction.set(
             Math.sin(THREE.MathUtils.degToRad(this.currentLaunchAngle)),
             0,
@@ -249,7 +225,7 @@ export default class PlayerInteraction {
         );
         this.aimArrow.setDirection(this.direction);
 
-        // مزامنة البانل
+       // Sync panel
         if (this.experience.inputPanel) {
             const force = this._calcForceFromZ(this.camera.instance.position.z);
             this.experience.inputPanel.updateFromGame(

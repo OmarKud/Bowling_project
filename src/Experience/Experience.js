@@ -14,7 +14,6 @@ export default class Experience {
     constructor(canvas) {
         if (instance) return instance;
         instance = this;
-
         window.experience = this;
 
         this.canvas   = canvas;
@@ -22,31 +21,24 @@ export default class Experience {
         this.time     = new Time();
         this.scene    = new THREE.Scene();
         this.camera   = new Camera();
-
-        // physicsWorld: المحرك الفيزيائي الرئيسي (RK4، تصادمات، إلخ)
+        // Main physics engine
         this.physicsWorld  = new PhysicsWorld();
-
         this.renderer = new Renderer();
         this.world    = new World();
 
-        // physicsEngine: مُراقب الكاميرا والحدود فقط
+        // Camera bounds monitor
         this.physicsEngine = new PhysicsEngine();
 
-        // InputPanel: يأخذ callback يُشغَّل عند الضغط على Launch
+        // Input panel – triggers launch callback
         this.inputPanel = new InputPanel((settings) => {
-            // الدبابيس تُحمَّل بشكل async عبر GLTFLoader — ننتظر حتى تكون جاهزة
             const pins = this.world?.hall?.pins?.pinsArray ?? [];
-
             if (pins.length === 0) {
-                console.warn('⚠️ الدبابيس لم تُحمَّل بعد. حاول مرة أخرى بعد ثانية.');
-                // أعد تفعيل الزر
+                console.warn('Pins not loaded yet. Try again.');
                 setTimeout(() => { this.inputPanel.isLaunched = false; }, 500);
                 return;
             }
-
             this.physicsWorld.initializeSimulation(settings, null, pins);
         });
-
         this.sizes.on(() => this._resize());
         this.time.on(()  => this._update());
     }
@@ -58,16 +50,13 @@ export default class Experience {
 
     _update() {
         const dt = this.time.delta * 0.001; // ms → s
-
         this.camera.update();
         this.world.update();
         this.physicsEngine.update();
-
-        // تشغيل المحرك الفيزيائي فقط عندما تكون الكرة في الهواء
+    // Run physics only while the ball is in flight
         if (this.inputPanel?.isLaunched) {
             this.physicsWorld.update(dt);
         }
-
         this.renderer.update();
     }
 }

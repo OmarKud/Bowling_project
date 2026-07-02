@@ -8,15 +8,13 @@ export default class Camera {
         this.scene = this.experience.scene;
         this.canvas = this.experience.canvas;
         this.time = this.experience.time;
-
         this.keys = { forward: false, backward: false, left: false, right: false };
         this.rotation = new THREE.Euler(0, 0, 0, 'YXZ');
 
-        // 🔥 تعريف المتجهات هنا مرة واحدة فقط لتجنب تدمير الذاكرة
+        // Reusable vectors for movement
         this.movement = new THREE.Vector3();
         this.forward = new THREE.Vector3();
         this.right = new THREE.Vector3();
-
         this.setInstance();
         this.setMouseListener();
         this.setKeyboardListeners();
@@ -67,39 +65,31 @@ export default class Camera {
    update() {
     this.instance.quaternion.setFromEuler(this.rotation);
     this.move();
-
     const isAiming = this.experience.world.playerInteraction && 
                      this.experience.world.playerInteraction.state === 'AIMING';
 if (this.experience.physics && !isAiming) {
         this.experience.physics.checkCameraBounds(this.instance.position);
     }
- 
 }
 
     move() {
-    
         const speed = 0.05 * this.time.delta;
-        
-        // 🔥 تصفير القيم بدلاً من إنشاء كائنات جديدة
+        // Reset vectors
         this.movement.set(0, 0, 0);
         this.forward.set(0, 0, 0);
         this.right.set(0, 0, 0);
-        
         this.instance.getWorldDirection(this.forward);
         this.forward.y = 0;
         this.forward.normalize();
-
         this.right.crossVectors(this.forward, this.instance.up).normalize();
 
         if (this.keys.forward) this.movement.add(this.forward);
         if (this.keys.backward) this.movement.sub(this.forward);
         if (this.keys.right) this.movement.add(this.right);
         if (this.keys.left) this.movement.sub(this.right);
-
         if (this.movement.lengthSq() > 0) {
             this.movement.normalize().multiplyScalar(speed);
             this.instance.position.add(this.movement);
         }
-      
     }
 }
