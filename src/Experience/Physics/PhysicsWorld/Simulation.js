@@ -2,7 +2,6 @@
 import * as THREE from "three";
 export default {
   initializeSimulation(settings, _ballMesh, _pinsMeshes) {
-
     this.settings = settings;
     this.accumulator = 0.0;
     this.pinsBodies = [];
@@ -126,7 +125,7 @@ export default {
 
       this.ballMesh.position.x = this._ballScreenOrigin.x + dp.x * this.SCALE;
       this.ballMesh.position.y =
-      this.ballBody.position.y * this.SCALE + this.visualRadiusOffset;
+        this.ballBody.position.y * this.SCALE + this.visualRadiusOffset;
       this.ballMesh.position.z = this._ballScreenOrigin.z + dp.z * this.SCALE;
 
       if (!this._gutterAlerted) {
@@ -143,7 +142,6 @@ export default {
       pin.meshRef.position.z = pin.position.z * this.SCALE;
 
       if (pin.isFallen) {
-
         // Slerp towards fall target quaternion (calculated from hit direction).
         if (!pin.meshRef.userData.fallTargetQuat) {
           const axis = pin.fallAxis || new THREE.Vector3(1, 0, 0);
@@ -210,8 +208,14 @@ export default {
     const allPins = this.experience.world?.hall?.pins?.pinsArray || [];
     const totalFallen = allPins.filter((m) => m.userData.isFallen).length;
     console.log(
-            `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
-        );
+      `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
+    );
+
+    if (totalFallen === 10) {
+      this.experience.inputPanel.allPinsKnockedDown = true;
+      this.experience.inputPanel.launchController.disable();
+      console.log("All pins knocked down! Click 'Reset Pins' to play again.");
+    }
     const resultPayload = { newlyFallen, totalFallen, isGutterBall };
     setTimeout(() => {
       this.experience.world?.hall?.bowlingScreens?.showResultForLane?.(
