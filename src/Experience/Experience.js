@@ -7,7 +7,7 @@ import World       from './World/World.js';
  import PhysicsWorld from './Physics/PhysicsWorld/index.js';
  import PhysicsEngine from './Physics/PhysicsEngine.js';
 import InputPanel    from './Physics/InputPanel.js';
-
+import PhysicsHUD    from './Physics/PhysicsHUD.js';
 let instance = null;
 
 export default class Experience {
@@ -28,7 +28,8 @@ export default class Experience {
 
         // Camera bounds monitor
         this.physicsEngine = new PhysicsEngine();
-
+  // Live physics HUD (top-left bars: V0, Speed, Ek, Ep, F, N, ...)
+        this.physicsHUD = new PhysicsHUD();
         // Input panel – triggers launch callback
         this.inputPanel = new InputPanel((settings) => {
             const pins = this.world?.hall?.pins?.pinsArray ?? [];

@@ -134,6 +134,7 @@ export default {
           `Ball landed | Drop: ${dropHeightScene.toFixed(2)} scene units | ` +
             `Speed: ${impactSpeed.toFixed(2)} m/s | Force: ${impactForce.toFixed(0)} N`,
         );
+        
         const bounceFactor = THREE.MathUtils.clamp(impactSpeed / 3.0, 0, 1);
         if (body.velocity.y < 0) {
           body.velocity.y =

@@ -149,18 +149,17 @@ export default {
       ? this.settings.muOil
       : this.settings.muDry;
   },
-
-  // Sum forces: gravity, friction, lane walls. Returns linear & angular acceleration.
+// Sum forces: gravity, friction, lane walls. Returns linear & angular acceleration.
   _computeAccelerations(body) {
     const linAcc = new THREE.Vector3();
     const angAcc = new THREE.Vector3();
 
-if (body.isPin) {
-  linAcc.y = this.gravity;
-  linAcc.x = -(body.velocity.x * 2.0) ;
-  linAcc.z = -(body.velocity.z * 2.0);
-  return { linAcc, angAcc };
-}
+    if (body.isPin) {
+      linAcc.y = this.gravity;
+      linAcc.x = -(body.velocity.x * 2.0);
+      linAcc.z = -(body.velocity.z * 2.0);
+      return { linAcc, angAcc };
+    }
     if (this._gutterAlerted) {
       return { linAcc, angAcc };
     }
@@ -181,6 +180,7 @@ if (body.isPin) {
     }
 
     const N = body.mass * Math.abs(this.gravity);
+    let fricMagnitude = 0;
 
     if (onGround) {
       const vB = this._computeContactVelocity(body);
@@ -189,24 +189,24 @@ if (body.isPin) {
       const rVector = new THREE.Vector3(0, -body.radius, 0);
 
       if (slipSpeed > 0.005) {
-        // Skid / Hook friction.
-        const fricForce = vB
-          .clone()
-          .normalize()
-          .multiplyScalar(-mu * N);
+        fricMagnitude = mu * N;
+        const fricForce = vB.clone().normalize().multiplyScalar(-fricMagnitude);
         linAcc.add(fricForce.clone().divideScalar(body.mass));
         const torque = new THREE.Vector3().crossVectors(rVector, fricForce);
         angAcc.add(torque.clone().divideScalar(body.inertia));
       } else {
-        // Pure rolling.
         const mu_rolling = 0.002;
-        const rollFricForce = body.velocity
-          .clone()
-          .normalize()
-          .multiplyScalar(-mu_rolling * N);
+        fricMagnitude = mu_rolling * N;
+        const rollFricForce = body.velocity.clone().normalize().multiplyScalar(-fricMagnitude);
         linAcc.add(rollFricForce.clone().divideScalar(body.mass));
         const torque = new THREE.Vector3().crossVectors(rVector, rollFricForce);
         angAcc.add(torque.clone().divideScalar(body.inertia));
+      }
+
+      if (!body.isPin) {
+        this.liveStats.F = fricMagnitude;
+        this.liveStats.N = N;
+        // this.liveStats.laneZone = this.currentLaneIndex;
       }
     }
 

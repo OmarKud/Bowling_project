@@ -33,6 +33,20 @@ export default class PhysicsWorldBase {
     this._isFalling = false;
     this._fallStartY = null;
     this.lastImpactInfo = null;
+    // Live physics stats for the HUD (PhysicsHUD.js reads this every frame).
+    this.liveStats = {
+      v0: 0,
+      speed: 0,
+      Ek: 0,
+      Ep: 0,
+      F: 0,
+      pushForce: 0,
+      N: 0,
+      laneZone: 0,
+      newlyFallen: 0,
+      totalFallen: 0,
+      isGutter: false,
+    };
   }
 }
 
@@ -110,6 +124,39 @@ export const MainLoop = {
       this.accumulator -= this.fixedDt;
     }
     this._syncMeshes();
+
+  // Push live values to the HUD (read-only, no effect on physics).
+    if (this.ballBody) {
+      this.liveStats.speed = this.ballBody.velocity.length();
+      this.liveStats.Ek = 0.5 * this.ballBody.mass * this.liveStats.speed ** 2;
+      const heightAboveFloor = Math.max(
+        0,
+        this.ballBody.position.y - this.LANE_SURFACE_OFFSET,
+      );
+      this.liveStats.Ep =
+        this.ballBody.mass * Math.abs(this.gravity) * heightAboveFloor;
+      this.liveStats.isGutter = this._gutterAlerted;
+    }
+       // Zone status: gutter takes priority, otherwise oil vs dry based on
+      // distance traveled from the throw origin (same rule _getFriction uses).
+      if (this._gutterAlerted) {
+        this.liveStats.laneZone = "gutter";
+      } else {
+        const dz = Math.abs(
+          this.ballBody.position.z - this._ballPhysicsOrigin.z,
+        );
+        this.liveStats.laneZone =
+          dz < this.settings.oilDistance ? "oil" : "dry";
+      }
+    
+        this.liveStats.totalFallen = this.pinsBodies.filter(
+      (p) => p.isFallen,
+    ).length;
+    if (this.experience?.physicsHUD) {
+      this.experience.physicsHUD.update(this.liveStats);
+    }
+
+
     // End condition: ball past pins OR asleep with all pins stable.
     const ballScreenZ = this.ballMesh ? this.ballMesh.position.z : 0;
     const allPinsSleeping = this.pinsBodies.every(
