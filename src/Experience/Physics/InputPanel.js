@@ -45,62 +45,6 @@ export default class InputPanel {
     // ── Player Controls ──────────────────────────────────────
     const player = this.gui.addFolder("Player Controls (Throw)");
 
-    player
-      .add(this.parameters, "xStart", 6, 26)
-      .name("X Start (Position)")
-      .listen()
-      .onChange((value) => {
-        const interact = window.experience?.world?.playerInteraction;
-        if (interact?.state === "AIMING") {
-          interact.camera.instance.position.x = value;
-          if (interact.heldBall) interact.heldBall.position.x = value;
-        }
-      });
-
-    player
-      .add(this.parameters, "yStart", 1.9, 5.5)
-      .name("Y Start (Height)")
-      .listen()
-      .onChange((value) => {
-        const interact = window.experience?.world?.playerInteraction;
-        if (interact?.state === "AIMING" && interact.heldBall) {
-          interact.heldBall.position.y = value;
-        }
-      });
-
-    player
-      .add(this.parameters, "launchAngle", -45, 45)
-      .name("Launch Angle (°)")
-      .listen()
-      .onChange((value) => {
-        const interact = window.experience?.world?.playerInteraction;
-        if (interact?.state === "AIMING") {
-          interact.currentLaunchAngle = value;
-        }
-      });
-
-    player
-      .add(this.parameters, "pushForce", 50, 600)
-      .name("Push Force (N)")
-      .listen()
-      .onChange((value) => {
-        const interact = window.experience?.world?.playerInteraction;
-        if (interact?.state === "AIMING") {
-          const newZ = 130 + ((value - 50) / 550) * 20;
-          interact.camera.instance.position.z = newZ;
-          if (interact.heldBall) interact.heldBall.position.z = newZ - 20;
-        }
-      });
-
-    player.add(this.parameters, "rpm", 0, 600).name("Spin RPM");
-
-    player
-      .add(this.parameters, "axisRotation", -90, 90)
-      .name("Axis Rotation (°)");
-
-    player.add(this.parameters, "axisTilt", 0, 45).name("Axis Tilt (°)");
-
-    this._launchController = player
     this.playerControllers.push(
       player
         .add(this.parameters, "xStart", 6, 26)
@@ -162,7 +106,7 @@ export default class InputPanel {
 
     this.playerControllers.push(
       player
-        .add(this.parameters, "axisRotation", 0, 90)
+        .add(this.parameters, "axisRotation", -90, 90)
         .name("Axis Rotation (°)"),
     );
 

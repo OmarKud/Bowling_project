@@ -189,13 +189,13 @@ export default {
     this.isSimulationActive = false;
     this._gutterAlerted = false;
     this._gutterLockedX = null;
-    this._startLane = null;
 
     // امسح الـ trail لما تنتهي الرمية (ضرب دبابيس، حفرة، أو توقف طبيعي)
     this.experience.world?.ballTrail?.clear();
 
     if (this.experience.inputPanel) {
       this.experience.inputPanel.isLaunched = false;
+      this.experience.inputPanel.enablePanel();
     }
     if (this.experience.world?.playerInteraction) {
       if (
@@ -226,8 +226,6 @@ export default {
     // this.liveStats.totalFallen = totalFallen;
     this.liveStats.isGutter = isGutterBall;
 
-      `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
-    );
 
     if (totalFallen === 10) {
       this.experience.inputPanel.allPinsKnockedDown = true;
