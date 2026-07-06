@@ -18,6 +18,13 @@ export default class World {
     this.setKeyboardListener();
     this.playerInteraction = new PlayerInteraction();
     this.ballTrail = new BallTrail(this.scene);
+
+        // Play hall entry sound
+window.addEventListener("click", () => {
+  if (this.experience.soundManager) {
+    this.experience.soundManager.playHallEntry();
+  }
+}, { once: true });
   }
 
   setSky() {

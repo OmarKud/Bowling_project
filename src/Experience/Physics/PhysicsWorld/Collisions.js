@@ -83,7 +83,8 @@ export default {
         .multiplyScalar(-1);
       bodyA.angularVelocity.addScaledVector(angImpulseA, 1.0 / bodyA.inertia);
     }
-
+   // Play collision sound
+    const soundManager = window.experience?.soundManager;
     // Fall threshold (0.5 m/s of Δv) - mass-independent by design.
     if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > 0.5) {
       bodyB.isFallen = true;
@@ -91,6 +92,7 @@ export default {
         .crossVectors(new THREE.Vector3(0, 1, 0), normal)
         .normalize();
       if (bodyB.fallAxis.lengthSq() < 0.0001) bodyB.fallAxis.set(1, 0, 0);
+      soundManager?.playPinFall();
     }
     if (bodyA.isPin && !bodyA.isFallen && Math.abs(j * invMassA) > 0.5) {
       bodyA.isFallen = true;
@@ -99,6 +101,7 @@ export default {
         .crossVectors(new THREE.Vector3(0, 1, 0), normalA)
         .normalize();
       if (bodyA.fallAxis.lengthSq() < 0.0001) bodyA.fallAxis.set(1, 0, 0);
+      soundManager?.playPinFall();
     }
     this._separateBodies(bodyA, bodyB, normal, minDist - dist);
   },

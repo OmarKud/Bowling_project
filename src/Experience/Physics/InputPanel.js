@@ -213,6 +213,10 @@ export default class InputPanel {
 
     this.stopController.show();
 
+        // Play the merged launch+rolling sound (one file, one variable)
+    window.experience?.soundManager?.playBallSound();
+
+
     console.log("Launch settings:", { ...this.parameters, launch: "[fn]" });
     if (this.onLaunch) {
       this.onLaunch({ ...this.parameters });
@@ -230,6 +234,11 @@ export default class InputPanel {
   }
 
   _reEnablePlayerControls() {
+
+       // Stop rolling sound when simulation ends
+    window.experience?.soundManager?.stopBallRolling();
+    
+
     this.enablePanel();
     this.stopController.hide();
   }
@@ -270,6 +279,10 @@ export default class InputPanel {
       return;
     }
     pinsObj.resetPins();
+
+    // Stop rolling sound
+    window.experience?.soundManager?.stopBallRolling();
+    
     const interact = window.experience?.world?.playerInteraction;
     interact?.restoreAimArrow?.();
     this.allPinsKnockedDown = false;
@@ -283,6 +296,10 @@ export default class InputPanel {
     if (!physicsWorld) return;
     physicsWorld.isSimulationActive = false;
     this.isLaunched = false;
+        // Stop rolling sound
+    window.experience?.soundManager?.stopBallRolling();
+    
+    
     this._reEnablePlayerControls();
     const interact = window.experience?.world?.playerInteraction;
     if (interact) {

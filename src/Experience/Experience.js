@@ -8,6 +8,8 @@ import World       from './World/World.js';
  import PhysicsEngine from './Physics/PhysicsEngine.js';
 import InputPanel    from './Physics/InputPanel.js';
 import PhysicsHUD    from './Physics/PhysicsHUD.js';
+import SoundManager from './SoundManager.js';
+
 let instance = null;
 
 export default class Experience {
@@ -21,6 +23,13 @@ export default class Experience {
         this.time     = new Time();
         this.scene    = new THREE.Scene();
         this.camera   = new Camera();
+
+              // Initialize Sound Manager
+        this.soundManager = new SoundManager(this.scene);
+        // Add audio listener to camera
+        this.camera.instance.add(this.soundManager.getListener());
+        
+        
         // Main physics engine
         this.physicsWorld  = new PhysicsWorld();
         this.renderer = new Renderer();
