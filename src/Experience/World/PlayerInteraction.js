@@ -127,6 +127,7 @@ export default class PlayerInteraction {
             this.experience.inputPanel.parameters.yStart    = 2.5;
             this.experience.inputPanel.parameters.launchAngle = 0;
             this.experience.inputPanel.parameters.pushForce = 250;
+            this.experience.inputPanel.enablePanel();
         }
     }
 
@@ -137,6 +138,9 @@ export default class PlayerInteraction {
         this.camera.instance.add(this.heldBall);
         this.heldBall.position.set(2.5, -2, -6);
         this.scene.remove(this.aimArrow);
+          if (this.experience.inputPanel) {
+            this.experience.inputPanel.disablePanel();
+        }
     }
 
     restoreAimArrow() {
