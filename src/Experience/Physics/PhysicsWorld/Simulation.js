@@ -189,8 +189,7 @@ export default {
     this.isSimulationActive = false;
     this._gutterAlerted = false;
     this._gutterLockedX = null;
-
-    // امسح الـ trail لما تنتهي الرمية (ضرب دبابيس، حفرة، أو توقف طبيعي)
+    this._startLane = null;
     this.experience.world?.ballTrail?.clear();
 
     if (this.experience.inputPanel) {
