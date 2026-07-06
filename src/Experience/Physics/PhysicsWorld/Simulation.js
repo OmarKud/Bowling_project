@@ -12,6 +12,9 @@ export default {
     this._isFalling = false;
     this._fallStartY = null;
     this.lastImpactInfo = null;
+    this._lastImpact = null;
+    this._lastCollision = null;
+    this._lastPinFall = null;
     this.ballMesh = this.experience.inputPanel.ball;
 
     if (!this.ballMesh) return;
@@ -65,7 +68,7 @@ export default {
       Math.sin(axisTilt),
       Math.cos(axisTilt) * Math.cos(axisRot),
     );
-
+const spinAxisUnit = spinAxis.clone();
     this.ballBody = this._createBody({
       position: startPosPhysics,
       velocity: new THREE.Vector3(vx, 0, vz),
@@ -75,9 +78,12 @@ export default {
       restitution: settings.restitution,
       meshRef: this.ballMesh,
     });
-    console.log(
-      `Ball Launch | v0: ${v0.toFixed(2)} m/s | angle: ${settings.launchAngle} deg | startY: ${startPosPhysics.y.toFixed(3)} m | radius: ${radius.toFixed(3)} m`,
-    );
+   this._logLaunchTelemetry({
+      mass, h, Ek, v0, vx, vz,
+      angle: settings.launchAngle,
+      omega, rpm: settings.rpm,
+      spinAxis: spinAxisUnit, radius,
+    });
 
     // Spawn physics bodies only for pins on the same lane.
     const allPins = this.experience.world?.hall?.pins?.pinsArray;
@@ -209,10 +215,10 @@ export default {
 
     const allPins = this.experience.world?.hall?.pins?.pinsArray || [];
     const totalFallen = allPins.filter((m) => m.userData.isFallen).length;
-    console.log(
-            `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
-        );
+   
     const resultPayload = { newlyFallen, totalFallen, isGutterBall };
+        this._logResultTelemetry(resultPayload);
+
     setTimeout(() => {
       this.experience.world?.hall?.bowlingScreens?.showResultForLane?.(
         this.currentLaneIndex,

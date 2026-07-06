@@ -33,6 +33,10 @@ export default class PhysicsWorldBase {
     this._isFalling = false;
     this._fallStartY = null;
     this.lastImpactInfo = null;
+
+    this._debugAccumulator = 0.0;
+    this._debugLogInterval = 0.25;
+    this.debugHUD = null;
   }
 }
 
@@ -110,6 +114,11 @@ export const MainLoop = {
       this.accumulator -= this.fixedDt;
     }
     this._syncMeshes();
+    this._debugAccumulator += deltaTime;
+    if (this._debugAccumulator >= this._debugLogInterval) {
+      this._debugAccumulator = 0.0;
+      this._logFrameTelemetry?.();
+    }
     // End condition: ball past pins OR asleep with all pins stable.
     const ballScreenZ = this.ballMesh ? this.ballMesh.position.z : 0;
     const allPinsSleeping = this.pinsBodies.every(

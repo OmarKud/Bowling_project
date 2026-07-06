@@ -57,9 +57,11 @@ export default {
       this._gutterLockedX = ballX;
       this._gutterLockedFloorY =
         this.LANE_SURFACE_OFFSET - this.GUTTER_DEPTH_PHYS;
-      console.log(
-        `Gutter Ball - x=${ballX.toFixed(3)} side=${inLeftGutter ? "LEFT" : "RIGHT"}`,
+     console.log(
+        `%c[GUTTER] ball left the lane - x=${ballX.toFixed(3)} side=${inLeftGutter ? "LEFT" : "RIGHT"}`,
+        "color:#ff5555;font-weight:bold;",
       );
+      this.debugHUD?.setStatus("GUTTER", "#ff5555");
     }
   },
 

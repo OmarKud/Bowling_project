@@ -58,6 +58,10 @@ export default {
     const j = (-(1.0 + e) * vRelN) / (invMassA + invMassB);
     const impulse = normal.clone().multiplyScalar(j);
 
+if (Math.abs(j) > 1.5) {
+      this._logCollisionTelemetry(bodyA, bodyB, Math.abs(j));
+    }
+
     // Linear impulse.
     bodyA.velocity.addScaledVector(impulse, -invMassA);
     bodyB.velocity.addScaledVector(impulse, invMassB);
@@ -85,12 +89,13 @@ export default {
     }
 
     // Fall threshold (0.5 m/s of Δv) - mass-independent by design.
-    if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > 0.5) {
+if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > 0.5) {
       bodyB.isFallen = true;
       bodyB.fallAxis = new THREE.Vector3()
         .crossVectors(new THREE.Vector3(0, 1, 0), normal)
         .normalize();
       if (bodyB.fallAxis.lengthSq() < 0.0001) bodyB.fallAxis.set(1, 0, 0);
+      this._logPinFallTelemetry(bodyB, Math.abs(j * invMassB));
     }
     if (bodyA.isPin && !bodyA.isFallen && Math.abs(j * invMassA) > 0.5) {
       bodyA.isFallen = true;
@@ -99,8 +104,8 @@ export default {
         .crossVectors(new THREE.Vector3(0, 1, 0), normalA)
         .normalize();
       if (bodyA.fallAxis.lengthSq() < 0.0001) bodyA.fallAxis.set(1, 0, 0);
+      this._logPinFallTelemetry(bodyA, Math.abs(j * invMassA));
     }
-    this._separateBodies(bodyA, bodyB, normal, minDist - dist);
   },
 
   // Push bodies apart to prevent overlapping.
@@ -130,10 +135,8 @@ export default {
         const impactSpeed = Math.abs(body.velocity.y);
         const impactForce = (body.mass * impactSpeed) / this.fixedDt;
         this.lastImpactInfo = { dropHeightScene, impactSpeed, impactForce };
-        console.log(
-          `Ball landed | Drop: ${dropHeightScene.toFixed(2)} scene units | ` +
-            `Speed: ${impactSpeed.toFixed(2)} m/s | Force: ${impactForce.toFixed(0)} N`,
-        );
+      this._logImpactTelemetry(this.lastImpactInfo);
+
         const bounceFactor = THREE.MathUtils.clamp(impactSpeed / 3.0, 0, 1);
         if (body.velocity.y < 0) {
           body.velocity.y =
