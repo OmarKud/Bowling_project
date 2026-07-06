@@ -39,6 +39,13 @@ export default {
     // delta_t = 0.05s player arm push (from spec).
     const delta_t = 0.05;
     const v0 = Math.sqrt((2 * Ek) / mass) + (force * delta_t) / mass;
+ // Report launch values to the HUD.
+    this.liveStats.v0 = v0;
+    this.liveStats.pushForce = settings.pushForce;
+    this.liveStats.Ep = Ek; // starting potential energy (Ek var here = m*g*h)
+    this.liveStats.newlyFallen = 0;
+    this.liveStats.isGutter = false;
+
     const vx = v0 * Math.sin(angle);
     const vz = -v0 * Math.cos(angle);
     const physicsVisualY = this.ballMesh.position.y - this.visualRadiusOffset;
@@ -83,7 +90,7 @@ export default {
     const allPins = this.experience.world?.hall?.pins?.pinsArray;
     if (allPins) {
       const currentLaneX = this.ballMesh.position.x;
-      const pinRadius = 0.11 * (this.PIN_HEIGHT / 3.8);
+      const pinRadius = 0.095 * (this.PIN_HEIGHT / 3.8);
       allPins.forEach((mesh) => {
         if (Math.abs(mesh.position.x - currentLaneX) >= 16) return;
         if (mesh.userData.isFallen) return;
@@ -104,7 +111,7 @@ export default {
           velocity: new THREE.Vector3(),
           mass: settings.pinMass,
           radius: pinRadius,
-          restitution: settings.restitution * 0.5,
+          restitution: settings.restitution * 0.25,
           isPin: true,
           meshRef: mesh,
         });
@@ -216,6 +223,11 @@ export default {
     console.log(
             `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
         );
+// Report end-of-throw values to the HUD.
+    // this.liveStats.newlyFallen = newlyFallen;
+    // this.liveStats.totalFallen = totalFallen;
+    this.liveStats.isGutter = isGutterBall;
+
     const resultPayload = { newlyFallen, totalFallen, isGutterBall };
     setTimeout(() => {
       this.experience.world?.hall?.bowlingScreens?.showResultForLane?.(
