@@ -60,11 +60,11 @@ export default {
     const omega = (2 * Math.PI * settings.rpm) / 60.0;
     const axisRot = THREE.MathUtils.degToRad(settings.axisRotation);
     const axisTilt = THREE.MathUtils.degToRad(settings.axisTilt);
-    const spinAxis = new THREE.Vector3(
-      Math.cos(axisTilt) * Math.sin(axisRot),
-      Math.sin(axisTilt),
-      Math.cos(axisTilt) * Math.cos(axisRot),
-    );
+  const spinAxis = new THREE.Vector3(
+  Math.cos(axisTilt) * Math.cos(axisRot),   // ωx: ثابت تقريبًا (تعديل بسيط بالسكيد الأمامي)
+  Math.sin(axisTilt),
+  Math.cos(axisTilt) * Math.sin(axisRot),   // ωz: هلق فعليًا بينقلب مع إشارة axisRotation
+);
 
     this.ballBody = this._createBody({
       position: startPosPhysics,
@@ -185,6 +185,10 @@ export default {
     this._gutterAlerted = false;
     this._gutterLockedX = null;
     this._startLane = null;
+
+    // امسح الـ trail لما تنتهي الرمية (ضرب دبابيس، حفرة، أو توقف طبيعي)
+    this.experience.world?.ballTrail?.clear();
+
     if (this.experience.inputPanel) {
       this.experience.inputPanel.isLaunched = false;
     }

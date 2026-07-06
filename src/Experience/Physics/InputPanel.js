@@ -85,7 +85,7 @@ export default class InputPanel {
     player.add(this.parameters, "rpm", 0, 600).name("Spin RPM");
 
     player
-      .add(this.parameters, "axisRotation", 0, 90)
+      .add(this.parameters, "axisRotation", -90, 90)
       .name("Axis Rotation (°)");
 
     player.add(this.parameters, "axisTilt", 0, 45).name("Axis Tilt (°)");

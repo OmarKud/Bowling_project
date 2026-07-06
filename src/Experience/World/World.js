@@ -2,6 +2,7 @@ import * as THREE from "three";
 import Experience from "../Experience.js";
 import Hall from "./Hall.js";
 import PlayerInteraction from "./PlayerInteraction.js";
+import BallTrail from "./BallTrail.js";
 
 export default class World {
   constructor() {
@@ -16,6 +17,7 @@ export default class World {
     this.hall = new Hall();
     this.setKeyboardListener();
     this.playerInteraction = new PlayerInteraction();
+    this.ballTrail = new BallTrail(this.scene);
   }
 
   setSky() {
@@ -75,5 +77,11 @@ export default class World {
       this.hall.update();
       if (this.playerInteraction) this.playerInteraction.update();
     }
+
+    // تحديث الـ trail كل فريم
+    const ip       = this.experience.inputPanel;
+    const ball     = ip?.ball;
+    const isActive = ip?.isLaunched ?? false;
+    this.ballTrail.update(ball?.position ?? null, isActive);
   }
 }
