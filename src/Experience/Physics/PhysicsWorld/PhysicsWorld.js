@@ -129,12 +129,12 @@ export const MainLoop = {
     if (this.ballBody) {
       this.liveStats.speed = this.ballBody.velocity.length();
       this.liveStats.Ek = 0.5 * this.ballBody.mass * this.liveStats.speed ** 2;
-      const heightAboveFloor = Math.max(
-        0,
-        this.ballBody.position.y - this.LANE_SURFACE_OFFSET,
-      );
-      this.liveStats.Ep =
-        this.ballBody.mass * Math.abs(this.gravity) * heightAboveFloor;
+    const heightAboveFloor = Math.max(
+  0,
+  this.ballBody.position.y - this.LANE_SURFACE_OFFSET - this.ballBody.radius,
+);
+this.liveStats.Ep =
+  this.ballBody.mass * Math.abs(this.gravity) * heightAboveFloor;
       this.liveStats.isGutter = this._gutterAlerted;
     }
        // Zone status: gutter takes priority, otherwise oil vs dry based on

@@ -32,8 +32,10 @@ export default {
     const angle = THREE.MathUtils.degToRad(settings.launchAngle);
 
     // Ep = m*g*h -> fully converted to kinetic energy.
-    const h = settings.yStart / this.SCALE;
-    const Ek = mass * 9.81 * h;
+   const restY = radius + this.LANE_SURFACE_OFFSET;
+const h = Math.max(0, (settings.yStart / this.SCALE) - restY);
+const Ek = mass * 9.81 * h;
+
 
     // delta_t = 0.05s player arm push (from spec).
     const delta_t = 0.05;
@@ -41,9 +43,13 @@ export default {
  // Report launch values to the HUD.
     this.liveStats.v0 = v0;
     this.liveStats.pushForce = settings.pushForce;
-    this.liveStats.Ep = Ek; // starting potential energy (Ek var here = m*g*h)
+    console.log(this.liveStats.Ep = Ek); // starting potential energy (Ek var here = m*g*h)
     this.liveStats.newlyFallen = 0;
     this.liveStats.isGutter = false;
+    
+    const MAX_DISPLAY_H = 0.05; 
+const hForDisplay = Math.min(h, MAX_DISPLAY_H);
+//this.liveStats.Ep = mass * 9.81 * hForDisplay;
 
     const vx = v0 * Math.sin(angle);
     const vz = -v0 * Math.cos(angle);
@@ -171,7 +177,7 @@ export default {
   },
 
   // Builds alert message based on result.
-  _buildResultAlertMessage({ newlyFallen, totalFallen, isGutterBall }) {
+  buildResultAlertMessage({ newlyFallen, totalFallen, isGutterBall }) {
     if (isGutterBall && totalFallen === 0) {
       return "Gutter ball! No pins fell.";
     }
@@ -237,7 +243,7 @@ export default {
         this.currentLaneIndex,
         resultPayload,
       );
-      window.alert(this._buildResultAlertMessage(resultPayload));
+      window.alert(this.buildResultAlertMessage(resultPayload));
     }, 800);
   },
 };

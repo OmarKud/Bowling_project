@@ -20,11 +20,11 @@ export default class PhysicsHUD {
     STATS.forEach((s) => (this.prevValues[s.key] = 0));
     this.prevGutter = false;
 
-    this._injectStyles();
-    this._buildDom();
+    this.injectStyles();
+    this.buildDom();
   }
 
-  _injectStyles() {
+  injectStyles() {
     if (document.getElementById("physics-hud-style")) return;
     const style = document.createElement("style");
     style.id = "physics-hud-style";
@@ -119,7 +119,7 @@ export default class PhysicsHUD {
     document.head.appendChild(style);
   }
 
-  _buildDom() {
+  buildDom() {
     const root = document.createElement("div");
     root.id = "physics-hud";
 
