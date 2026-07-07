@@ -283,6 +283,7 @@ export default class InputPanel {
     if (!physicsWorld) return;
     physicsWorld.isSimulationActive = false;
     this.isLaunched = false;
+    window.experience?.world?.ballTrail?.clear();
     this._reEnablePlayerControls();
     const interact = window.experience?.world?.playerInteraction;
     if (interact) {
@@ -294,7 +295,7 @@ export default class InputPanel {
         interact.scene.add(interact.heldBall);
       }
     }
-
+//
     console.log("Ball stopped. Back to aiming mode.");
   }
 }

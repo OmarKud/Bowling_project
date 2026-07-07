@@ -32,7 +32,6 @@ export default class BallTrail {
     }
 
     update(ballPosition, isActive) {
-        // نضيف نقطة بس لو في رمية نشطة ولم نتجاوز الحد
         if (isActive && ballPosition && this._points.length < MAX_POINTS) {
             this._points.push(ballPosition.clone());
         }
@@ -57,7 +56,6 @@ export default class BallTrail {
         this._geometry.setDrawRange(0, count);
     }
 
-    // بتنادى من _endSimulation فقط
     clear() {
         this._points = [];
         this._line.visible = false;
