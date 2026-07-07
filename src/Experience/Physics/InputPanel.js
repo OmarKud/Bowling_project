@@ -33,9 +33,9 @@ export default class InputPanel {
       restitution: 0.6,
       pinMass: 1.5,
 
-      launch: () => this._executeLaunch(),
+      launch: () => this.executeLaunch(),
       resetPins: () => this._resetPins(),
-      stop: () => this._stopBall(),
+      stop: () => this.stopBall(),
     };
 
     this._buildPanel();
@@ -189,7 +189,7 @@ export default class InputPanel {
     this.ball = ballMesh;
   }
 
-  _executeLaunch() {
+  executeLaunch() {
     this.parameters.yStart = Math.max(
       this.parameters.yStart,
       2.7 * (this.parameters.ballRadius / 1.1),
@@ -253,7 +253,7 @@ export default class InputPanel {
 
   // Disable every control in the panel (Player Controls + Physics Sandbox).
   // Used whenever the ball is OUTSIDE aiming mode (FREE_ROAM / HOLDING_BALL)
-  // and also while the ball is launched (handled separately in _executeLaunch).
+  // and also while the ball is launched (handled separately in executeLaunch).
   disablePanel() {
     this.playerControllers.forEach((controller) => {
       controller.disable();
@@ -278,7 +278,7 @@ export default class InputPanel {
     console.log("Pins reset to initial positions.");
   }
 
-  _stopBall() {
+  stopBall() {
     const physicsWorld = window.experience?.physicsWorld;
     if (!physicsWorld) return;
     physicsWorld.isSimulationActive = false;
