@@ -1,5 +1,5 @@
 // Rigid body template (ball or pin).
-import * as THREE from 'three';
+import * as THREE from "three";
 export default class RigidBody {
     constructor(mass, radius, isPin = false, restitution = 0.6) {
         this.mass   = mass;
@@ -15,9 +15,9 @@ export default class RigidBody {
         this.angularVelocity = new THREE.Vector3();   
         //شعاع السرعة الزاوية                   //Angular velocity vector   ω = ωx î + ωy ĵ + ωz k̂
 
-
-        this.isPin     = isPin;
-        this.isFallen  = false;
-        this.isSleeping = false; 
-    }
+    this.isPin = isPin;
+    this.isFallen = false;
+    this.isSleeping = false;
+    this.meshRef = meshRef;
+  }
 }

@@ -1,6 +1,7 @@
 // Core physics constants, factory, and main loop.
 import * as THREE from "three";
 import Experience from "../../Experience.js";
+import RigidBody from "../RigidBody.js";
 export default class PhysicsWorldBase {
   constructor() {
     this.experience = new Experience();
@@ -53,22 +54,30 @@ export default class PhysicsWorldBase {
 // Rigid body factory.
 Object.assign(PhysicsWorldBase.prototype, {
   _createBody(options) {
+    const position = options.position ?? new THREE.Vector3();
+    const velocity = options.velocity ?? new THREE.Vector3();
+    const angularVelocity = options.angularVelocity ?? new THREE.Vector3();
+    const orientation = options.orientation ?? new THREE.Quaternion();
     const mass = options.mass ?? 1.0;
     const radius = options.radius ?? 0.108;
-    return {
-      position: options.position ?? new THREE.Vector3(),
-      velocity: options.velocity ?? new THREE.Vector3(),
-      angularVelocity: options.angularVelocity ?? new THREE.Vector3(),
-      orientation: options.orientation ?? new THREE.Quaternion(),
+    // const inertia = (2 / 5) * mass * radius * radius;
+    const restitution = options.restitution ?? 0.6;
+    const isPin = options.isPin ?? false;
+    // const isFallen = false;
+    // const isSleeping = false;
+    const meshRef = options.meshRef ?? null;
+
+    return new RigidBody(
+      position,
+      velocity,
+      angularVelocity,
+      orientation,
       mass,
       radius,
-      inertia: (2 / 5) * mass * radius * radius,
-      restitution: options.restitution ?? 0.6,
-      isPin: options.isPin ?? false,
-      isFallen: false,
-      isSleeping: false,
-      meshRef: options.meshRef ?? null,
-    };
+      restitution,
+      isPin,
+      meshRef,
+    );
   },
 });
 
@@ -125,7 +134,7 @@ export const MainLoop = {
     }
     this._syncMeshes();
 
-  // Push live values to the HUD (read-only, no effect on physics).
+    // Push live values to the HUD (read-only, no effect on physics).
     if (this.ballBody) {
       this.liveStats.speed = this.ballBody.velocity.length();
       this.liveStats.Ek = 0.5 * this.ballBody.mass * this.liveStats.speed ** 2;
@@ -137,25 +146,21 @@ this.liveStats.Ep =
   this.ballBody.mass * Math.abs(this.gravity) * heightAboveFloor;
       this.liveStats.isGutter = this._gutterAlerted;
     }
-       // Zone status: gutter takes priority, otherwise oil vs dry based on
-      // distance traveled from the throw origin (same rule _getFriction uses).
-      if (this._gutterAlerted) {
-        this.liveStats.laneZone = "gutter";
-      } else {
-        const dz = Math.abs(
-          this.ballBody.position.z - this._ballPhysicsOrigin.z,
-        );
-        this.liveStats.laneZone =
-          dz < this.settings.oilDistance ? "oil" : "dry";
-      }
-    
-        this.liveStats.totalFallen = this.pinsBodies.filter(
+    // Zone status: gutter takes priority, otherwise oil vs dry based on
+    // distance traveled from the throw origin (same rule _getFriction uses).
+    if (this._gutterAlerted) {
+      this.liveStats.laneZone = "gutter";
+    } else {
+      const dz = Math.abs(this.ballBody.position.z - this._ballPhysicsOrigin.z);
+      this.liveStats.laneZone = dz < this.settings.oilDistance ? "oil" : "dry";
+    }
+
+    this.liveStats.totalFallen = this.pinsBodies.filter(
       (p) => p.isFallen,
     ).length;
     if (this.experience?.physicsHUD) {
       this.experience.physicsHUD.update(this.liveStats);
     }
-
 
     // End condition: ball past pins OR asleep with all pins stable.
     const ballScreenZ = this.ballMesh ? this.ballMesh.position.z : 0;
