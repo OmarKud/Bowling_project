@@ -43,7 +43,7 @@ const Ek = mass * 9.81 * h;
     // Report launch values to the HUD.
     this.liveStats.v0 = v0;
     this.liveStats.pushForce = settings.pushForce;
-    console.log(this.liveStats.Ep = Ek); // starting potential energy (Ek var here = m*g*h)
+   this.liveStats.Ep = Ek; // starting potential energy (Ek var here = m*g*h)
     this.liveStats.newlyFallen = 0;
     this.liveStats.isGutter = false;
     

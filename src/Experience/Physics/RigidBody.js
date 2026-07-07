@@ -1,19 +1,33 @@
 // Rigid body template (ball or pin).
 import * as THREE from "three";
-export default class RigidBody {
-    constructor(mass, radius, isPin = false, restitution = 0.6) {
-        this.mass   = mass;
-        this.radius = radius;
 
-        this.inertia = (2.0 / 5.0) * mass * (radius * radius);
-        //عزم القصور الذاتي  
-        this.restitution = restitution;                                          // (Coefficient of Restitution)
-        this.position = new THREE.Vector3();                             //Position vector      r = x î + y ĵ + z k̂
-        this.velocity = new THREE.Vector3();                             //Linear velocity vector  v = dx/dt î + dy/dt ĵ + dz/dt k̂
-        this.orientation = new THREE.Quaternion(); 
-         //زاوية ميلان الجسم
-        this.angularVelocity = new THREE.Vector3();   
-        //شعاع السرعة الزاوية                   //Angular velocity vector   ω = ωx î + ωy ĵ + ωz k̂
+export default class RigidBody {
+  constructor(
+    position,
+    velocity,
+    angularVelocity,
+    orientation,
+    mass,
+    radius,
+    restitution = 0.6,
+    isPin = false,
+    meshRef = null,
+  ) {
+    // Position vector      r = x î + y ĵ + z k̂
+    this.position = position ?? new THREE.Vector3();
+    // Linear velocity vector  v = dx/dt î + dy/dt ĵ + dz/dt k̂
+    this.velocity = velocity ?? new THREE.Vector3();
+    // Angular velocity vector   ω = ωx î + ωy ĵ + ωz k̂
+    this.angularVelocity = angularVelocity ?? new THREE.Vector3();
+    // Quaternion orientation (زاوية ميلان الجسم)
+    this.orientation = orientation ?? new THREE.Quaternion();
+
+    this.mass = mass;
+    this.radius = radius;
+    // عزم القصور الذاتي لكرة متجانسة  I = (2/5) m R²
+    this.inertia = (2.0 / 5.0) * mass * (radius * radius);
+    // (Coefficient of Restitution)
+    this.restitution = restitution;
 
     this.isPin = isPin;
     this.isFallen = false;
