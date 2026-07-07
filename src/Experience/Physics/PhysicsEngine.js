@@ -15,11 +15,17 @@ export default class PhysicsEngine {
     checkCameraBounds(cameraPosition) {
         if (!cameraPosition) return;
         const padding = 2.0;
-
         if (cameraPosition.x < this.bounds.minX + padding) cameraPosition.x = this.bounds.minX + padding;
         if (cameraPosition.x > this.bounds.maxX - padding) cameraPosition.x = this.bounds.maxX - padding;
         if (cameraPosition.z < this.bounds.minZ + padding) cameraPosition.z = this.bounds.minZ + padding;
-        if (cameraPosition.z > this.bounds.maxZ - padding) cameraPosition.z = this.bounds.maxZ - padding;
+        const doorCenterX = 0;
+        const doorAllowanceX = 35; 
+        const doorZ = 270;        
+        if (cameraPosition.z > doorZ - padding) {
+            if (Math.abs(cameraPosition.x - doorCenterX) > doorAllowanceX) {
+                cameraPosition.z = doorZ - padding;
+            }
+        }
     }
 
     update() {
