@@ -2,8 +2,7 @@
 import * as THREE from "three";
 
 export default {
-  // Cache the starting lane based on ball X. Static per throw.
-  _getStartLane() {
+  getStartLane() {
     if (this._startLane) return this._startLane;
     const bx = this._ballPhysicsOrigin.x;
     let nearest = this.LANE_CENTERS_PHYS[0];
@@ -14,6 +13,7 @@ export default {
         minDist = d;
         nearest = c;
       }
+      //
     }
     this._startLane = {
       center: nearest,
@@ -25,7 +25,7 @@ export default {
     return this._startLane;
   },
 
-  _getLaneIndexFromX(x) {
+  getLaneIndexFromX(x) {
     let bestIndex = 0;
     let bestDistance = Infinity;
 
@@ -41,9 +41,9 @@ export default {
   },
 
   // Check if ball exits the lane's wood surface. Locks state immediately.
-  _checkGutterEntry(ballX) {
-    if (this._gutterAlerted) return;
-    const lane = this._getStartLane();
+  checkGutterEntry(ballX) {
+    if (this.gutterAlerted) return;
+    const lane = this.getStartLane();
     const pastStart =
       this.ballBody.position.z < this._ballPhysicsOrigin.z - 0.1;
     if (!pastStart) return;
@@ -53,7 +53,7 @@ export default {
     const inRightGutter = ballX > lane.laneRight;
 
     if (inLeftGutter || inRightGutter) {
-      this._gutterAlerted = true;
+      this.gutterAlerted = true;
       this._gutterLockedX = ballX;
       this._gutterLockedFloorY =
         this.LANE_SURFACE_OFFSET - this.GUTTER_DEPTH_PHYS;
@@ -64,8 +64,8 @@ export default {
   },
 
   // Gutter physics: slide towards the concave bottom, no weird bouncing.
-  _applyGutterConstraints(body) {
-    const lane = this._getStartLane();
+  applyGutterConstraints(body) {
+    const lane = this.getStartLane();
     const isLeftGutter = body.position.x < lane.center;
     const gutterCenter = isLeftGutter
       ? lane.center - this.LANE_HALF_WIDTH - this.GUTTER_WIDTH_PHYS / 2
@@ -92,10 +92,9 @@ export default {
   },
 
   // No wall force - gutter detection is purely positional.
-  _computeGutterForce(body) {
+  computeGutterForce(body) {
     return new THREE.Vector3(0, 0, 0);
   },
-  // قوة صد عند حافة المسار الأصلي، وبتشتغل بس قبل ما الكرة تدخل الحفرة فعليًا
 //     _computeGutterForce(body) {
 //         const force = new THREE.Vector3(0, 0, 0);
 //         if (this._gutterAlerted) return force; // بعد الدخول ما منضيف قوة إضافية
@@ -104,7 +103,6 @@ export default {
 //         const lane  = this._getStartLane();
 //         const bx    = body.position.x;
 
-//         // حافة يسار
 //         const dxLeft = bx - lane.laneLeft;
 //         if (dxLeft < 0 && dxLeft > -this.GUTTER_WIDTH_PHYS) {
 //             const wallX   = lane.gutterLeft;
@@ -117,7 +115,6 @@ export default {
 //             }
 //         }
 
-//         // حافة يمين
 //         const dxRight = lane.laneRight - bx;
 //         if (dxRight < 0 && dxRight > -this.GUTTER_WIDTH_PHYS) {
 //             const wallX   = lane.gutterRight;
@@ -133,24 +130,26 @@ export default {
 //         return force;
 //     },
   // Contact velocity at the ball's bottom point (for friction).
-  _computeContactVelocity(body) {
+  computeContactVelocity(body) {
     const r = new THREE.Vector3(0, -body.radius, 0);
     const vB = body.velocity
       .clone()
       .add(new THREE.Vector3().crossVectors(body.angularVelocity, r));
     vB.y = 0;
     return vB;
+          //نقطة التلامس مع الخشب
+
   },
 
   // Friction coefficient: oil zone vs dry lane.
-  _getFriction(body) {
+  getFriction(body) {
     const dz = Math.abs(body.position.z - this._ballPhysicsOrigin.z);
     return dz < this.settings.oilDistance
       ? this.settings.muOil
       : this.settings.muDry;
   },
 // Sum forces: gravity, friction, lane walls. Returns linear & angular acceleration.
-  _computeAccelerations(body) {
+  computeAccelerations(body) {
     const linAcc = new THREE.Vector3();
     const angAcc = new THREE.Vector3();
 
@@ -160,11 +159,11 @@ export default {
       linAcc.z = -(body.velocity.z * 2.0);
       return { linAcc, angAcc };
     }
-    if (this._gutterAlerted) {
+    if (this.gutterAlerted) {
       return { linAcc, angAcc };
     }
 
-    const lane = this._getStartLane();
+    const lane = this.getStartLane();
     const floorY = this.LANE_SURFACE_OFFSET;
     const onGround = body.position.y <= floorY + body.radius + 0.001;
 
@@ -174,26 +173,32 @@ export default {
 
     const speed = body.velocity.length();
     if (speed < 0.001 && body.angularVelocity.length() < 0.001) {
-      const gf = this._computeGutterForce(body);
+      const gf = this.computeGutterForce(body);
       linAcc.x += gf.x / body.mass;
       return { linAcc, angAcc };
     }
 
     const N = body.mass * Math.abs(this.gravity);
     let fricMagnitude = 0;
+   // قوة الاحتكاك.
 
     if (onGround) {
-      const vB = this._computeContactVelocity(body);
+      const vB = this.computeContactVelocity(body);
       const slipSpeed = vB.length();
-      const mu = this._getFriction(body);
+      //سرعة انزلاقها
+      const mu = this.getFriction(body);
       const rVector = new THREE.Vector3(0, -body.radius, 0);
 
       if (slipSpeed > 0.005) {
         fricMagnitude = mu * N;
+        //قوة الاحتكاك
         const fricForce = vB.clone().normalize().multiplyScalar(-fricMagnitude);
+        //نوجه الاحتكاك بعكس اتجاه انزلاق نقطة التلامس
         linAcc.add(fricForce.clone().divideScalar(body.mass));
         const torque = new THREE.Vector3().crossVectors(rVector, fricForce);
+        //عزم الدوران
         angAcc.add(torque.clone().divideScalar(body.inertia));
+        //
       } else {
         const mu_rolling = 0.002;
         fricMagnitude = mu_rolling * N;
@@ -210,15 +215,15 @@ export default {
       }
     }
 
-    const gutterForce = this._computeGutterForce(body);
+    const gutterForce = this.computeGutterForce(body);
     linAcc.x += gutterForce.x / body.mass;
 
     return { linAcc, angAcc };
   },
 
   // RK4 integrator for high precision (smooth friction transitions).
-  _integrateRK4(body, dt) {
-    const { linAcc: a1, angAcc: aa1 } = this._computeAccelerations(body);
+  integrateRK4(body, dt) {
+    const { linAcc: a1, angAcc: aa1 } = this.computeAccelerations(body);
     const k1v = body.velocity.clone();
 
     const b2 = {
@@ -229,7 +234,7 @@ export default {
         .clone()
         .addScaledVector(aa1, dt * 0.5),
     };
-    const { linAcc: a2, angAcc: aa2 } = this._computeAccelerations(b2);
+    const { linAcc: a2, angAcc: aa2 } = this.computeAccelerations(b2);
     const k2v = b2.velocity.clone();
 
     const b3 = {
@@ -240,7 +245,7 @@ export default {
         .clone()
         .addScaledVector(aa2, dt * 0.5),
     };
-    const { linAcc: a3, angAcc: aa3 } = this._computeAccelerations(b3);
+    const { linAcc: a3, angAcc: aa3 } = this.computeAccelerations(b3);
     const k3v = b3.velocity.clone();
 
     const b4 = {
@@ -249,7 +254,7 @@ export default {
       velocity: body.velocity.clone().addScaledVector(a3, dt),
       angularVelocity: body.angularVelocity.clone().addScaledVector(aa3, dt),
     };
-    const { linAcc: a4, angAcc: aa4 } = this._computeAccelerations(b4);
+    const { linAcc: a4, angAcc: aa4 } = this.computeAccelerations(b4);
     const k4v = b4.velocity.clone();
 
     const w = dt / 6.0;
@@ -268,5 +273,7 @@ export default {
       .addScaledVector(aa2, w * 2)
       .addScaledVector(aa3, w * 2)
       .addScaledVector(aa4, w);
+      // A = A + (B . s)
   },
+  //
 };

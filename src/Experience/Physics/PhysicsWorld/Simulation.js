@@ -5,7 +5,7 @@ export default {
     this.settings = settings;
     this.accumulator = 0.0;
     this.pinsBodies = [];
-    this._gutterAlerted = false;
+    this.gutterAlerted = false;
     this._gutterLockedX = null;
     this._gutterLockedFloorY = 0;
     this._isFalling = false;
@@ -61,7 +61,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
       this.ballMesh.position.z / this.SCALE,
     );
 
-    this.currentLaneIndex = this._getLaneIndexFromX(startPosPhysics.x);
+    this.currentLaneIndex = this.getLaneIndexFromX(startPosPhysics.x);
     this.experience.world?.hall?.bowlingScreens?.resetLaneDisplay?.(
       this.currentLaneIndex,
     );
@@ -73,12 +73,12 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
     const axisRot = THREE.MathUtils.degToRad(settings.axisRotation);
     const axisTilt = THREE.MathUtils.degToRad(settings.axisTilt);
     const spinAxis = new THREE.Vector3(
-      Math.cos(axisTilt) * Math.cos(axisRot), // ωx: ثابت تقريبًا (تعديل بسيط بالسكيد الأمامي)
-      Math.sin(axisTilt),
-      Math.cos(axisTilt) * Math.sin(axisRot), // ωz: هلق فعليًا بينقلب مع إشارة axisRotation
+      //حساب محور دوران الطابة
+      Math.cos(axisTilt) * Math.cos(axisRot), // ωx: ثابت تقريبًا 
+      Math.cos(axisTilt) * Math.sin(axisRot), // ωz: هaxisRotation
     );
 
-    this.ballBody = this._createBody({
+    this.ballBody = this.createBody({
       position: startPosPhysics,
       velocity: new THREE.Vector3(vx, 0, vz),
       angularVelocity: spinAxis.multiplyScalar(omega),
@@ -106,7 +106,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
         mesh.rotation.set(0, 0, 0);
         mesh.position.y = this.PIN_HEIGHT;
 
-        const pinBody = this._createBody({
+        const pinBody = this.createBody({
           position: new THREE.Vector3(
             mesh.position.x / this.SCALE,
             mesh.position.y / this.SCALE,
@@ -129,7 +129,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
   },
 
   // Sync physics state to Three.js meshes.
-  _syncMeshes() {
+  syncMeshes() {
     if (this.ballMesh && this.ballBody) {
       const dp = new THREE.Vector3().subVectors(
         this.ballBody.position,
@@ -141,7 +141,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
         this.ballBody.position.y * this.SCALE + this.visualRadiusOffset;
       this.ballMesh.position.z = this._ballScreenOrigin.z + dp.z * this.SCALE;
 
-      if (!this._gutterAlerted) {
+      if (!this.gutterAlerted) {
         const av = this.ballBody.angularVelocity;
         this.ballMesh.rotation.x += av.x * this.fixedDt * 0.5;
         this.ballMesh.rotation.y += av.y * this.fixedDt * 0.5;
@@ -153,7 +153,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
       if (!pin.meshRef) return;
       pin.meshRef.position.x = pin.position.x * this.SCALE;
       pin.meshRef.position.z = pin.position.z * this.SCALE;
-
+//update position
       if (pin.isFallen) {
         // Slerp towards fall target quaternion (calculated from hit direction).
         if (!pin.meshRef.userData.fallTargetQuat) {
@@ -191,9 +191,9 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
   },
 
   // Ends simulation: counts fallen, updates UI, shows alert.
-  _endSimulation(isGutterBall = false) {
+  endSimulation(isGutterBall = false) {
     this.isSimulationActive = false;
-    this._gutterAlerted = false;
+    this.gutterAlerted = false;
     this._gutterLockedX = null;
     this._startLane = null;
     this.experience.world?.ballTrail?.clear();
@@ -226,9 +226,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
     console.log(
       `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
     );
-    // Report end-of-throw values to the HUD.
-    // this.liveStats.newlyFallen = newlyFallen;
-    // this.liveStats.totalFallen = totalFallen;
+
     this.liveStats.isGutter = isGutterBall;
 
     if (totalFallen === 10) {

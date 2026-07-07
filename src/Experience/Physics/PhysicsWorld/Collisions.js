@@ -2,7 +2,7 @@
 import * as THREE from "three";
 
 export default {
- _integratePin(pin, dt) {
+ integratePin(pin, dt) {
     if (pin.isSleeping) return;
     pin.velocity.y += this.gravity * dt;
     // normalize to default mass
@@ -25,7 +25,7 @@ export default {
     }
 },
   // Impulse-based collision (ball-pin & pin-pin). Conserves momentum.
-  _resolveCollision(bodyA, bodyB) {
+  resolveCollision(bodyA, bodyB) {
     if (bodyA.isSleeping && bodyB.isSleeping) return;
     if (bodyA.isFallen && bodyB.isFallen) return;
     if ((bodyA.isFallen && !bodyB.isPin) || (bodyB.isFallen && !bodyA.isPin))
@@ -112,8 +112,8 @@ export default {
   },
 
   // Ball floor collision with impact tracking (higher drop = more bounce).
-  _resolveGround(body) {
-    if (this._gutterAlerted) return;
+  resolveGround(body) {
+    if (this.gutterAlerted) return;
 
     const floorY = body.radius + this.LANE_SURFACE_OFFSET;
 

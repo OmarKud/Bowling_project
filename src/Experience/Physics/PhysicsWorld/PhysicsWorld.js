@@ -26,7 +26,7 @@ export default class PhysicsWorldBase {
     // Corrects visual z-fighting with the lane mesh. Surface Y offset.
     this.LANE_SURFACE_OFFSET = 0.3 / this.SCALE;
     // Gutter state (locks once triggered).
-    this._gutterAlerted = false;
+    this.gutterAlerted = false;
     this._gutterLockedX = null;
     this._gutterLockedXr = null;
     this._gutterLockedFloorY = 0;
@@ -53,7 +53,7 @@ export default class PhysicsWorldBase {
 
 // Rigid body factory.
 Object.assign(PhysicsWorldBase.prototype, {
-  _createBody(options) {
+  createBody(options) {
     const position = options.position ?? new THREE.Vector3();
     const velocity = options.velocity ?? new THREE.Vector3();
     const angularVelocity = options.angularVelocity ?? new THREE.Vector3();
@@ -88,14 +88,15 @@ export const MainLoop = {
     this.accumulator += Math.min(deltaTime, 0.02);
     while (this.accumulator >= this.fixedDt) {
       if (!this.ballBody.isSleeping) {
-        this._checkGutterEntry(this.ballBody.position.x);
+        this.checkGutterEntry(this.ballBody.position.x);
 
-        if (this._gutterAlerted) {
-          this._applyGutterConstraints(this.ballBody);
+        if (this.gutterAlerted) {
+          this.applyGutterConstraints(this.ballBody);
+          //apply phisics on gutter
           this.ballBody.position.z += this.ballBody.velocity.z * this.fixedDt;
         } else {
-          this._integrateRK4(this.ballBody, this.fixedDt);
-          this._resolveGround(this.ballBody);
+          this.integrateRK4(this.ballBody, this.fixedDt);
+          this.resolveGround(this.ballBody);
         }
         // Put ball to sleep if almost stationary.
         const ballSpeed = this.ballBody.velocity.length();
@@ -110,15 +111,15 @@ export const MainLoop = {
       // Integrate pins and resolve ball-pin collisions (skip if gutter).
       for (let i = 0; i < this.pinsBodies.length; i++) {
         const pin = this.pinsBodies[i];
-        if (!pin.isSleeping) this._integratePin(pin, this.fixedDt);
-        if (!this._gutterAlerted) this._resolveCollision(this.ballBody, pin);
+        if (!pin.isSleeping) this.integratePin(pin, this.fixedDt);
+        if (!this.gutterAlerted) this.resolveCollision(this.ballBody, pin);
       }
       // Pin-pin collisions.
       for (let i = 0; i < this.pinsBodies.length; i++) {
         for (let j = i + 1; j < this.pinsBodies.length; j++) {
           const pA = this.pinsBodies[i],
             pB = this.pinsBodies[j];
-          if (!pA.isSleeping || !pB.isSleeping) this._resolveCollision(pA, pB);
+          if (!pA.isSleeping || !pB.isSleeping) this.resolveCollision(pA, pB);
         }
       }
 
@@ -132,7 +133,7 @@ export const MainLoop = {
       });
       this.accumulator -= this.fixedDt;
     }
-    this._syncMeshes();
+    this.syncMeshes();
 
     // Push live values to the HUD (read-only, no effect on physics).
     if (this.ballBody) {
@@ -144,11 +145,11 @@ export const MainLoop = {
 );
 this.liveStats.Ep =
   this.ballBody.mass * Math.abs(this.gravity) * heightAboveFloor;
-      this.liveStats.isGutter = this._gutterAlerted;
+      this.liveStats.isGutter = this.gutterAlerted;
     }
     // Zone status: gutter takes priority, otherwise oil vs dry based on
-    // distance traveled from the throw origin (same rule _getFriction uses).
-    if (this._gutterAlerted) {
+    // distance traveled from the throw origin (same rule getFriction uses).
+    if (this.gutterAlerted) {
       this.liveStats.laneZone = "gutter";
     } else {
       const dz = Math.abs(this.ballBody.position.z - this._ballPhysicsOrigin.z);
@@ -168,7 +169,7 @@ this.liveStats.Ep =
       (p) => p.isSleeping || p.isFallen,
     );
     if (ballScreenZ < -260 || (this.ballBody.isSleeping && allPinsSleeping)) {
-      this._endSimulation(this._gutterAlerted);
+      this.endSimulation(this.gutterAlerted);
     }
   },
 };

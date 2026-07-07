@@ -3,13 +3,13 @@
 // Purely visual — does not touch any physics calculation.
 
 const STATS = [
-  { key: "v0",          label: "V0 (سرعة الإطلاق)",   unit: "m/s",  color: "#4FC3F7", max: 30  },
+  { key: "v0",          label: "V0 ",   unit: "m/s",  color: "#4FC3F7", max: 30  },
   { key: "speed",       label: "Speed",                unit: "m/s",  color: "#29B6F6", max: 30  },
-  { key: "Ek",          label: "Ek (طاقة حركة)",       unit: "J",    color: "#FFB74D", max: 150 },
-  { key: "Ep",          label: "Ep (طاقة وضع)",        unit: "J",    color: "#FF8A65", max: 150 },
+  { key: "Ek",          label: "Ek ",       unit: "J",    color: "#FFB74D", max: 150 },
+  { key: "Ep",          label: "Ep ",        unit: "J",    color: "#FF8A65", max: 150 },
   { key: "pushForce",   label: "Push Force",           unit: "N",    color: "#FF7043", max: 600 },
-  { key: "F",           label: "F (احتكاك)",           unit: "N",    color: "#BA68C8", max: 40  },
-  { key: "N",           label: "N (نيوتن العمودية)",   unit: "N",    color: "#9575CD", max: 80  },
+  { key: "F",           label: "F ",           unit: "N",    color: "#BA68C8", max: 40  },
+  { key: "N",           label: "N ",   unit: "N",    color: "#9575CD", max: 80  },
   { key: "laneZone",    label: "Lane Zone",            unit: "",     color: "#4DB6AC", max: 1   },
   { key: "totalFallen", label: "Total Fallen",         unit: "pins", color: "#66BB6A", max: 10  },
 ];
@@ -20,11 +20,11 @@ export default class PhysicsHUD {
     STATS.forEach((s) => (this.prevValues[s.key] = 0));
     this.prevGutter = false;
 
-    this.injectStyles();
-    this.buildDom();
+    this._injectStyles();
+    this._buildDom();
   }
 
-  injectStyles() {
+  _injectStyles() {
     if (document.getElementById("physics-hud-style")) return;
     const style = document.createElement("style");
     style.id = "physics-hud-style";
@@ -119,7 +119,7 @@ export default class PhysicsHUD {
     document.head.appendChild(style);
   }
 
-  buildDom() {
+  _buildDom() {
     const root = document.createElement("div");
     root.id = "physics-hud";
 
@@ -187,7 +187,7 @@ export default class PhysicsHUD {
     STATS.forEach((s) => {
       const raw = stats[s.key] !== undefined ? stats[s.key] : 0;
       const currentNum = parseFloat(raw);
-      const isText = isNaN(currentNum); // إذا كانت القيمة نصاً (OIL, DRY, GUTTER)
+      const isText = isNaN(currentNum); // (OIL, DRY, GUTTER)
       
       const prev = this.prevValues[s.key];
       const row = this.rows[s.key];
@@ -195,27 +195,26 @@ export default class PhysicsHUD {
       row.trend.classList.remove("up", "down", "flat");
 
       if (isText) {
-        // 🌟 التعامل مع النصوص (Lane Zone)
+        // Lane Zone (OIL, DRY, GUTTER) as text with colored bar
         const textValue = String(raw).toUpperCase();
         row.trend.textContent = "•";
         row.trend.classList.add("flat");
         row.value.textContent = textValue;
         
-        // تلوين الشريط والنص حسب المنطقة
-        row.barFill.style.width = "100%"; // الشريط ممتلئ ليظهر كحالة
+        row.barFill.style.width = "100%"; 
         if (textValue === "OIL") {
-            row.barFill.style.background = "#4FC3F7"; // أزرق للزيت
+            row.barFill.style.background = "#4FC3F7";
             row.value.style.color = "#4FC3F7";
         } else if (textValue === "DRY") {
-            row.barFill.style.background = "#FFB74D"; // برتقالي للجفاف
+            row.barFill.style.background = "#FFB74D"; 
             row.value.style.color = "#FFB74D";
         } else if (textValue === "GUTTER") {
-            row.barFill.style.background = "#FF5252"; // أحمر للحفرة
+            row.barFill.style.background = "#FF5252";
             row.value.style.color = "#FF5252";
         }
 
       } else {
-        // 🌟 التعامل مع الأرقام (باقي المتغيرات)
+        // Numeric stats (V0, Speed, Ek, Ep, F, N, Push Force, Total Fallen)
         const displayValue = currentNum.toFixed(2);
 
         if (currentNum - prev > 0.001) {
@@ -230,7 +229,7 @@ export default class PhysicsHUD {
         }
 
         row.value.textContent = `${displayValue} ${s.unit}`;
-        row.value.style.color = s.color; // استعادة اللون الافتراضي
+        row.value.style.color = s.color; 
 
         const pct = Math.max(0, Math.min(1, currentNum / s.max)) * 100;
         row.barFill.style.width = `${pct}%`;
