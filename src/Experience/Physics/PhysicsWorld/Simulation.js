@@ -38,7 +38,7 @@ export default {
     // delta_t = 0.05s player arm push (from spec).
     const delta_t = 0.05;
     const v0 = Math.sqrt((2 * Ek) / mass) + (force * delta_t) / mass;
- // Report launch values to the HUD.
+    // Report launch values to the HUD.
     this.liveStats.v0 = v0;
     this.liveStats.pushForce = settings.pushForce;
     this.liveStats.Ep = Ek; // starting potential energy (Ek var here = m*g*h)
@@ -66,11 +66,11 @@ export default {
     const omega = (2 * Math.PI * settings.rpm) / 60.0;
     const axisRot = THREE.MathUtils.degToRad(settings.axisRotation);
     const axisTilt = THREE.MathUtils.degToRad(settings.axisTilt);
-  const spinAxis = new THREE.Vector3(
-  Math.cos(axisTilt) * Math.cos(axisRot),   // ωx: ثابت تقريبًا (تعديل بسيط بالسكيد الأمامي)
-  Math.sin(axisTilt),
-  Math.cos(axisTilt) * Math.sin(axisRot),   // ωz: هلق فعليًا بينقلب مع إشارة axisRotation
-);
+    const spinAxis = new THREE.Vector3(
+      Math.cos(axisTilt) * Math.cos(axisRot), // ωx: ثابت تقريبًا (تعديل بسيط بالسكيد الأمامي)
+      Math.sin(axisTilt),
+      Math.cos(axisTilt) * Math.sin(axisRot), // ωz: هلق فعليًا بينقلب مع إشارة axisRotation
+    );
 
     this.ballBody = this._createBody({
       position: startPosPhysics,
@@ -218,13 +218,12 @@ export default {
     const allPins = this.experience.world?.hall?.pins?.pinsArray || [];
     const totalFallen = allPins.filter((m) => m.userData.isFallen).length;
     console.log(
-            `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
-        );
-// Report end-of-throw values to the HUD.
+      `Throw ended | Newly fallen: ${newlyFallen} | Total: ${totalFallen}/10 | Gutter: ${isGutterBall}`,
+    );
+    // Report end-of-throw values to the HUD.
     // this.liveStats.newlyFallen = newlyFallen;
     // this.liveStats.totalFallen = totalFallen;
     this.liveStats.isGutter = isGutterBall;
-
 
     if (totalFallen === 10) {
       this.experience.inputPanel.allPinsKnockedDown = true;
