@@ -106,7 +106,7 @@ export default {
     this._separateBodies(bodyA, bodyB, normal, minDist - dist);
   },
 
-  ////Push bodies apart to prevent overlapping.
+  ///Push bodies apart to prevent overlapping.
   _separateBodies(bodyA, bodyB, normal, penetration) {
     const correction = normal.clone().multiplyScalar(penetration * 0.5);
     if (!bodyA.isPin)
