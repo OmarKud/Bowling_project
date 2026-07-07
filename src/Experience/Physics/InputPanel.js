@@ -62,7 +62,7 @@ export default class InputPanel {
     this.playerControllers.push(
       player
         .add(this.parameters, "yStart", 1.9, 5.5)
-        .name("Y Start (Height)")
+        .name("Z Start (Height)")
         .listen()
         .onChange((value) => {
           const interact = window.experience?.world?.playerInteraction;
