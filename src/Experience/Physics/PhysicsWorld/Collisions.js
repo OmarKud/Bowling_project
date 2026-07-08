@@ -24,7 +24,7 @@ export default {
       pin.meshRef.rotation.z += pin.angularVelocity.z * dt;
     }
 },
-  // Impulse-based collision (ball-pin & pin-pin). Conserves momentum.
+  // Impulse-based collision (ball-pin & pin-pin). 
   resolveCollision(bodyA, bodyB) {
     if (bodyA.isSleeping && bodyB.isSleeping) return;
     if (bodyA.isFallen && bodyB.isFallen) return;
@@ -40,9 +40,12 @@ export default {
     if (dist >= minDist || dist < 0.0001) return;
     const normal = diffFlat.clone().divideScalar(dist);
     const vRel = new THREE.Vector3().subVectors(bodyB.velocity, bodyA.velocity);
+    //السرعة النسبية بين الجسمين
     const vRelN = vRel.dot(normal);
+    //الجسمين عم يقربوا من بعض باتجاه التصادم
     if (vRelN >= 0) {
-      this._separateBodies(bodyA, bodyB, normal, minDist - dist);
+      //عم يبتعدوا عن بعض
+      this.separateBodies(bodyA, bodyB, normal, minDist - dist);
       return;
     }
     bodyA.isSleeping = false;
@@ -56,6 +59,7 @@ export default {
     const invMassA = 1.0 / bodyA.mass;
     const invMassB = 1.0 / bodyB.mass;
     const j = (-(1.0 + e) * vRelN) / (invMassA + invMassB);
+    //الدفع النبضي
     const impulse = normal.clone().multiplyScalar(j);
 
     // Linear impulse.
@@ -65,11 +69,14 @@ export default {
     // Angular impulse for pins (tipping effect).
     if (bodyB.isPin) {
       const rB = new THREE.Vector3(
+        //ذراع العزم rB
+        //وشعاع الدفع impulse
         normal.x * bodyB.radius,
         bodyA.position.y - bodyB.position.y,
         normal.z * bodyB.radius,
       );
       const angImpulseB = new THREE.Vector3().crossVectors(rB, impulse);
+      //عزم الدوران
       bodyB.angularVelocity.addScaledVector(angImpulseB, 1.0 / bodyB.inertia);
     }
     if (bodyA.isPin) {
@@ -84,7 +91,6 @@ export default {
       bodyA.angularVelocity.addScaledVector(angImpulseA, 1.0 / bodyA.inertia);
     }
 
-    // Fall threshold (0.5 m/s of Δv) - mass-independent by design.
     if (bodyB.isPin && !bodyB.isFallen && Math.abs(j * invMassB) > 0.5) {
       bodyB.isFallen = true;
       bodyB.fallAxis = new THREE.Vector3()
@@ -100,18 +106,17 @@ export default {
         .normalize();
       if (bodyA.fallAxis.lengthSq() < 0.0001) bodyA.fallAxis.set(1, 0, 0);
     }
-    this._separateBodies(bodyA, bodyB, normal, minDist - dist);
+    this.separateBodies(bodyA, bodyB, normal, minDist - dist);
   },
 
   // Push bodies apart to prevent overlapping.
-  _separateBodies(bodyA, bodyB, normal, penetration) {
+  separateBodies(bodyA, bodyB, normal, penetration) {
     const correction = normal.clone().multiplyScalar(penetration * 0.5);
     if (!bodyA.isPin)
       bodyA.position.sub(correction.clone().multiplyScalar(0.1));
     bodyB.position.add(correction);
   },
 
-  // Ball floor collision with impact tracking (higher drop = more bounce).
   resolveGround(body) {
     if (this.gutterAlerted) return;
 
@@ -129,6 +134,7 @@ export default {
           Math.max(0, this._fallStartY - floorY) * this.SCALE;
         const impactSpeed = Math.abs(body.velocity.y);
         const impactForce = (body.mass * impactSpeed) / this.fixedDt;
+        //قوة الضربة
         this.lastImpactInfo = { dropHeightScene, impactSpeed, impactForce };
         console.log(
           `Ball landed | Drop: ${dropHeightScene.toFixed(2)} scene units | ` +

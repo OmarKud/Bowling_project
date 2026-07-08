@@ -28,10 +28,10 @@ export default class PlayerInteraction {
         );
 
         this.keys = { q: false, e: false };
-        this._setKeyboardListener();
+        this.setKeyboardListener();
     }
 
-    _setKeyboardListener() {
+    setKeyboardListener() {
         window.addEventListener('keydown', (event) => {
             const key = event.key.toLowerCase();
 
@@ -50,8 +50,8 @@ export default class PlayerInteraction {
             }
 
             if (this.state === 'AIMING') {
-                if (key === 'r') this._adjustHeight(0.1);
-                if (key === 'f') this._adjustHeight(-0.1);
+                if (key === 'r') this.adjustHeight(0.1);
+                if (key === 'f') this.adjustHeight(-0.1);
                 if (key === 'q') this.keys.q = true;
                 if (key === 'e') this.keys.e = true;
             }
@@ -108,7 +108,6 @@ export default class PlayerInteraction {
         this.heldBall = null;
     }
 
-    // ─────────────────────────────────────────────────────────
     enterAimingMode() {
         this.state = 'AIMING';
         this.camera.instance.remove(this.heldBall);
@@ -156,19 +155,16 @@ export default class PlayerInteraction {
             this.heldBall.position.z
         );
 
-        // Direction must match the ball's actual velocity direction on launch:
-        // vx = sin(angle), vz = -cos(angle)
         const rad = THREE.MathUtils.degToRad(this.currentLaunchAngle);
         this.direction.set(Math.sin(rad), 0, -Math.cos(rad));
         this.aimArrow.setDirection(this.direction);
     }
 
-    // ─────────────────────────────────────────────────────────
-    _adjustHeight(delta) {
+    adjustHeight(delta) {
         if (!this.heldBall) return;
         this.heldBall.position.y = Math.max(1.9, Math.min(5.5, this.heldBall.position.y + delta));
         if (this.experience.inputPanel) {
-            const force = this._calcForceFromZ(this.camera.instance.position.z);
+            const force = this.calcForceFromZ(this.camera.instance.position.z);
             this.experience.inputPanel.updateFromGame(
                 this.camera.instance.position.x,
                 this.heldBall.position.y,
@@ -179,7 +175,7 @@ export default class PlayerInteraction {
     }
 
     // Map camera Z position to push force (130→50N, 150→600N)
-    _calcForceFromZ(z) {
+    calcForceFromZ(z) {
         return 50 + ((z - 130) / 20) * 550;
     }
 
@@ -231,7 +227,7 @@ export default class PlayerInteraction {
 
        // Sync panel
         if (this.experience.inputPanel) {
-            const force = this._calcForceFromZ(this.camera.instance.position.z);
+            const force = this.calcForceFromZ(this.camera.instance.position.z);
             this.experience.inputPanel.updateFromGame(
                 this.camera.instance.position.x,
                 this.heldBall.position.y,
