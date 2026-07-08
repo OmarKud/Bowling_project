@@ -33,7 +33,7 @@ export default {
 
     // Ep = m*g*h -> fully converted to kinetic energy.
    const restY = radius + this.LANE_SURFACE_OFFSET;
-const h = Math.max(0, (settings.yStart / this.SCALE) - restY);
+const h = settings.yStart / this.SCALE;
 const Ek = mass * 9.81 * h;
 
 
@@ -95,7 +95,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
     const allPins = this.experience.world?.hall?.pins?.pinsArray;
     if (allPins) {
       const currentLaneX = this.ballMesh.position.x;
-      const pinRadius = 0.095 * (this.PIN_HEIGHT / 3.8);
+const pinRadius = 0.11 * (this.PIN_HEIGHT / 3.8);
       allPins.forEach((mesh) => {
         if (Math.abs(mesh.position.x - currentLaneX) >= 16) return;
         if (mesh.userData.isFallen) return;
@@ -116,7 +116,7 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
           velocity: new THREE.Vector3(),
           mass: settings.pinMass,
           radius: pinRadius,
-          restitution: settings.restitution * 0.25,
+restitution: settings.restitution * 0.5,
           isPin: true,
           meshRef: mesh,
         });
