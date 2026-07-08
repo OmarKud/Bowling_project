@@ -72,11 +72,11 @@ const hForDisplay = Math.min(h, MAX_DISPLAY_H);
     const omega = (2 * Math.PI * settings.rpm) / 60.0;
     const axisRot = THREE.MathUtils.degToRad(settings.axisRotation);
     const axisTilt = THREE.MathUtils.degToRad(settings.axisTilt);
-    const spinAxis = new THREE.Vector3(
-      //حساب محور دوران الطابة
-      Math.cos(axisTilt) * Math.cos(axisRot), // ωx: ثابت تقريبًا 
-      Math.cos(axisTilt) * Math.sin(axisRot), // ωz: هaxisRotation
-    );
+   const spinAxis = new THREE.Vector3(
+  Math.cos(axisTilt) * Math.cos(axisRot),   // ωx
+  Math.sin(axisTilt),                        // ωy
+  Math.cos(axisTilt) * Math.sin(axisRot),   // ωz
+);
 
     this.ballBody = this.createBody({
       position: startPosPhysics,
